@@ -163,6 +163,10 @@ struct StringPool {
 impl StringPool{
 
     fn from_buff(axml_buff: &mut Cursor<Vec<u8>>) -> Result<Self, Error> {
+        /* Go back 2 bytes, to account from the block type */
+        let offset = axml_buff.position();
+        axml_buff.set_position(offset - 2);
+
         /* Parse chunk header */
         let header = ChunkHeader::from_buff(axml_buff, XmlTypes::RES_STRING_POOL_TYPE)
                      .expect("Error: cannot get chunk header from string pool");
@@ -247,22 +251,30 @@ impl StringPool{
     }
 }
 
-/* fn get_next_block_type(mut axml_buff: Cursor<Vec<u8>>) -> Result<u16, Error> {
+fn get_next_block_type(axml_buff: &mut Cursor<Vec<u8>>) -> Result<u16, Error> {
     let raw_block_type = axml_buff.read_u16::<LittleEndian>().unwrap();
-    println!("during {:02X}", raw_block_type);
 
     let block_type = match raw_block_type {
+        0x0000 => XmlTypes::RES_NULL_TYPE,
+        0x0001 => XmlTypes::RES_STRING_POOL_TYPE,
+        0x0002 => XmlTypes::RES_TABLE_TYPE,
+        0x0003 => XmlTypes::RES_XML_TYPE,
         0x0100 => XmlTypes::RES_XML_START_NAMESPACE_TYPE,
         0x0101 => XmlTypes::RES_XML_END_NAMESPACE_TYPE,
         0x0102 => XmlTypes::RES_XML_START_ELEMENT_TYPE,
         0x0103 => XmlTypes::RES_XML_END_ELEMENT_TYPE,
         0x0104 => XmlTypes::RES_XML_CDATA_TYPE,
         0x017f => XmlTypes::RES_XML_LAST_CHUNK_TYPE,
+        0x0180 => XmlTypes::RES_XML_RESOURCE_MAP_TYPE,
+        0x0200 => XmlTypes::RES_TABLE_PACKAGE_TYPE,
+        0x0201 => XmlTypes::RES_TABLE_TYPE_TYPE,
+        0x0202 => XmlTypes::RES_TABLE_TYPE_SPEC_TYPE,
+        0x0203 => XmlTypes::RES_TABLE_LIBRARY_TYPE,
         _ => XmlTypes::RES_NULL_TYPE
     };
 
     Ok(block_type)
-} */
+}
 
 fn print_block_type(block_type: u16) {
     match block_type {
@@ -306,7 +318,33 @@ fn main() {
 
     header.print();
 
-    /* Now parsing string pool */
+    /* Now parsing the rest of the file */
+    loop {
+        let block_type = get_next_block_type(&mut axml_buff).unwrap();
+        match block_type {
+            XmlTypes::RES_NULL_TYPE => println!("null"),
+            XmlTypes::RES_STRING_POOL_TYPE => {
+                let string_pool = StringPool::from_buff(&mut axml_buff)
+                                            .expect("Error: cannot parse string pool header");
+                string_pool.print();
+            },
+            XmlTypes::RES_TABLE_TYPE => println!("RES_TABLE_TYPE"),
+            XmlTypes::RES_XML_TYPE => println!("RES_XML_TYPE"),
+            XmlTypes::RES_XML_START_NAMESPACE_TYPE => println!("RES_XML_START_NAMESPACE_TYPE"),
+            XmlTypes::RES_XML_END_NAMESPACE_TYPE => println!("RES_XML_END_NAMESPACE_TYPE"),
+            XmlTypes::RES_XML_START_ELEMENT_TYPE => println!("RES_XML_START_ELEMENT_TYPE"),
+            XmlTypes::RES_XML_END_ELEMENT_TYPE => println!("RES_XML_END_ELEMENT_TYPE"),
+            XmlTypes::RES_XML_CDATA_TYPE => println!("RES_XML_CDATA_TYPE"),
+            XmlTypes::RES_XML_LAST_CHUNK_TYPE => println!("RES_XML_LAST_CHUNK_TYPE"),
+            XmlTypes::RES_XML_RESOURCE_MAP_TYPE => println!("RES_XML_RESOURCE_MAP_TYPE"),
+            XmlTypes::RES_TABLE_PACKAGE_TYPE => println!("RES_TABLE_PACKAGE_TYPE"),
+            XmlTypes::RES_TABLE_TYPE_TYPE => println!("RES_TABLE_TYPE_TYPE"),
+            XmlTypes::RES_TABLE_TYPE_SPEC_TYPE => println!("RES_TABLE_TYPE_SPEC_TYPE"),
+            XmlTypes::RES_TABLE_LIBRARY_TYPE => println!("RES_TABLE_LIBRARY_TYPE"),
+            _ => println!("{:02X}, other", block_type),
+        }
+    }
+
     // read(&mut axml_buff);
     let string_pool = StringPool::from_buff(&mut axml_buff)
                              .expect("Error: cannot parse string pool header");
