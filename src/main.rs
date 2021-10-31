@@ -2,10 +2,12 @@ use std::{
     env,
     fs,
     process::exit,
+    collections::HashMap,
 };
 use std::io::{
     Read,
     Error,
+    Cursor,
 };
 use byteorder::{
     LittleEndian,
@@ -63,7 +65,7 @@ struct ChunkHeader {
 
 impl ChunkHeader {
 
-    fn from_buff(mut axml_buff: &[u8], expected_type: u16) -> Result<Self, Error> {
+    fn from_buff(axml_buff: &mut Cursor<Vec<u8>>, expected_type: u16) -> Result<Self, Error> {
         /* Minimum size, for a chunk with no data */
         let minimum_size = 8;
 
@@ -99,6 +101,13 @@ impl ChunkHeader {
             size: chunk_total_size,
         })
     }
+
+    fn print(&self) {
+        println!("Header chunk_type: {:02X}", self.chunk_type);
+        println!("Header header_size: {:02X}", self.header_size);
+        println!("File size: {:04X}", self.size);
+        println!("--------------------");
+    }
 }
 
 /* Header of a chunk representing a pool of strings
@@ -117,7 +126,7 @@ impl ChunkHeader {
  * into a style table starting at stylesStart.  Each entry in the
  * style table is an array of ResStringPool_span structures.
  */
-struct StringPoolHeader {
+struct StringPool {
     /* Chunk header */
     header: ChunkHeader,
 
@@ -138,17 +147,22 @@ struct StringPoolHeader {
      *
      * If UTF8_FLAG is set, the string pool is ended in UTF-8.  */
     flags: u32,
+    is_utf8: bool,
 
     /* Index from header of the string data. */
     strings_start: u32,
 
     /* Index from header of the style data. */
-    styles_start: u32
+    styles_start: u32,
+
+    strings_offsets: Vec<u32>,
+    styles_offsets: Vec<u32>,
+    strings: HashMap<u32, String>,
 }
 
-impl StringPoolHeader{
+impl StringPool{
 
-    fn from_buff(mut axml_buff: &[u8]) -> Result<Self, Error> {
+    fn from_buff(axml_buff: &mut Cursor<Vec<u8>>) -> Result<Self, Error> {
         /* Parse chunk header */
         let header = ChunkHeader::from_buff(axml_buff, XmlTypes::RES_STRING_POOL_TYPE)
                      .expect("Error: cannot get chunk header from string pool");
@@ -157,26 +171,87 @@ impl StringPoolHeader{
         let string_count = axml_buff.read_u32::<LittleEndian>().unwrap();
         let style_count = axml_buff.read_u32::<LittleEndian>().unwrap();
         let flags = axml_buff.read_u32::<LittleEndian>().unwrap();
+        let is_utf8 = (flags & (1<<8)) != 0;
         let strings_start = axml_buff.read_u32::<LittleEndian>().unwrap();
         let styles_start = axml_buff.read_u32::<LittleEndian>().unwrap();
 
+        /* Get strings offsets */
+        let mut strings_offsets = Vec::new();
+        for _ in 0..string_count {
+            let offset = axml_buff.read_u32::<LittleEndian>().unwrap();
+            strings_offsets.push(offset);
+        }
+
+        /* Get styles offsets */
+        let mut styles_offsets = Vec::new();
+        for _ in 0..style_count {
+            let offset = axml_buff.read_u32::<LittleEndian>().unwrap();
+            styles_offsets.push(offset);
+        }
+
+        /* Strings */
+        let mut strings = HashMap::<u32, String>::new();
+        let mut offset = 0;
+
+        while strings.len() < string_count as usize {
+            let str_size;
+            let decoded_string;
+
+            if is_utf8 {
+                str_size = axml_buff.read_u8().unwrap() as u16;
+                let mut str_buff = Vec::with_capacity(str_size as usize);
+                let mut chunk = axml_buff.take(str_size.into());
+
+                chunk.read_to_end(&mut str_buff).unwrap();
+                decoded_string = String::from_utf8(str_buff).unwrap();
+
+                // strings.insert(offset, decoded_string);
+                // offset += str_size as u32;
+            } else {
+                str_size = axml_buff.read_u16::<LittleEndian>().unwrap();
+                let iter = (0..str_size as usize)
+                           .map(|_| axml_buff.read_u16::<LittleEndian>().unwrap());
+                decoded_string = std::char::decode_utf16(iter).collect::<Result<String, _>>().unwrap();
+            }
+
+            if str_size > 0 {
+                strings.insert(offset, decoded_string);
+                offset += str_size as u32;
+            }
+        }
+
         /* Build and return the object */
-        Ok(StringPoolHeader {
+        Ok(StringPool {
             header: header,
             string_count: string_count,
             style_count: style_count,
             flags: flags,
+            is_utf8: is_utf8,
             strings_start: strings_start,
-            styles_start: styles_start
+            styles_start: styles_start,
+            strings_offsets: strings_offsets,
+            styles_offsets: styles_offsets,
+            strings: strings
         })
+    }
+
+    fn print(&self) {
+        self.header.print();
+        println!("String count: {:02X}", self.string_count);
+        println!("Style count: {:02X}", self.style_count);
+        println!("Flags: {:02X}", self.flags);
+        println!("Is UTF-8: {:?}", self.is_utf8);
+        println!("Strings start: {:02X}", self.strings_start);
+        println!("Styles start: {:02X}", self.styles_start);
+        println!("--------------------");
     }
 }
 
-fn get_next_block_type(mut axml_buff: &[u8]) -> Result<u16, Error> {
+/* fn get_next_block_type(mut axml_buff: Cursor<Vec<u8>>) -> Result<u16, Error> {
     let raw_block_type = axml_buff.read_u16::<LittleEndian>().unwrap();
+    println!("during {:02X}", raw_block_type);
 
     let block_type = match raw_block_type {
-        0x0100 => XmlTypes::RES_XML_FIRST_CHUNK_TYPE,
         0x0100 => XmlTypes::RES_XML_START_NAMESPACE_TYPE,
         0x0101 => XmlTypes::RES_XML_END_NAMESPACE_TYPE,
         0x0102 => XmlTypes::RES_XML_START_ELEMENT_TYPE,
@@ -187,6 +262,27 @@ fn get_next_block_type(mut axml_buff: &[u8]) -> Result<u16, Error> {
     };
 
     Ok(block_type)
+} */
+
+fn print_block_type(block_type: u16) {
+    match block_type {
+        0x0000 => println!("RES_NULL_TYPE"),
+        0x0001 => println!("RES_STRING_POOL_TYPE"),
+        0x0002 => println!("RES_TABLE_TYPE"),
+        0x0003 => println!("RES_XML_TYPE"),
+        0x0100 => println!("RES_XML_START_NAMESPACE_TYPE"),
+        0x0101 => println!("RES_XML_END_NAMESPACE_TYPE"),
+        0x0102 => println!("RES_XML_START_ELEMENT_TYPE"),
+        0x0103 => println!("RES_XML_END_ELEMENT_TYPE"),
+        0x0104 => println!("RES_XML_CDATA_TYPE"),
+        0x017f => println!("RES_XML_LAST_CHUNK_TYPE"),
+        0x0180 => println!("RES_XML_RESOURCE_MAP_TYPE"),
+        0x0200 => println!("RES_TABLE_PACKAGE_TYPE"),
+        0x0201 => println!("RES_TABLE_TYPE_TYPE"),
+        0x0202 => println!("RES_TABLE_TYPE_SPEC_TYPE"),
+        0x0203 => println!("RES_TABLE_LIBRARY_TYPE"),
+        _ => println!("Unknown: {:02X}", block_type)
+    };
 }
 
 fn main() {
@@ -201,23 +297,41 @@ fn main() {
     println!("[+] Parsing {}", axml_path);
 
     let mut raw_file = fs::File::open(axml_path).expect("Error: cannot open AXML file");
-    let mut axml_buff = Vec::new();
-    raw_file.read_to_end(&mut axml_buff).expect("Error: cannot read AXML file");
+    let mut axml_vec_buff = Vec::new();
+    raw_file.read_to_end(&mut axml_vec_buff).expect("Error: cannot read AXML file");
+    let mut axml_buff = Cursor::new(axml_vec_buff);
 
-    let header = ChunkHeader::from_buff(&axml_buff, XmlTypes::RES_XML_TYPE)
+    let header = ChunkHeader::from_buff(&mut axml_buff, XmlTypes::RES_XML_TYPE)
                  .expect("Error: cannot parse AXML header");
 
-    println!("Header chunk_type: {:02X}", header.chunk_type);
-    println!("Header header_size: {:02X}", header.header_size);
-    println!("File size: {:02X}", header.size);
-    println!("--------------------");
+    header.print();
 
-    let next_block_type = get_next_block_type(&axml_buff);
-    let next_block_type = (&axml_buff).read_u16::<LittleEndian>().unwrap();
-    read(&axml_buff[header.header_size as usize..]);
+    /* Now parsing string pool */
+    // read(&mut axml_buff);
+    let string_pool = StringPool::from_buff(&mut axml_buff)
+                             .expect("Error: cannot parse string pool header");
+    string_pool.print();
+
+    let next_block_type = axml_buff.read_u16::<LittleEndian>().unwrap();
+    println!("next block type {:02X}", next_block_type);
+    print_block_type(next_block_type);
+    let next_block_type = axml_buff.read_u16::<LittleEndian>().unwrap();
+    println!("next block type {:02X}", next_block_type);
+    print_block_type(next_block_type);
+    let next_block_type = axml_buff.read_u16::<LittleEndian>().unwrap();
+    println!("next block type {:02X}", next_block_type);
+    print_block_type(next_block_type);
+    let next_block_type = axml_buff.read_u16::<LittleEndian>().unwrap();
+    println!("next block type {:02X}", next_block_type);
+    print_block_type(next_block_type);
+
+    // let next_block_type = get_next_block_type(axml_buff).unwrap();
+    // println!("after {:02X}", next_block_type);
+
+    // read(&axml_buff[header.header_size as usize..]);
 }
 
-fn read(mut data: &[u8]) {
+fn read(data: &mut Cursor<Vec<u8>>) {
     println!("Type: {:02X}", data.read_u16::<LittleEndian>().unwrap());
     println!("Header size: {:02X}", data.read_u16::<LittleEndian>().unwrap());
     println!("Sizecount: {:02X}", data.read_u32::<LittleEndian>().unwrap());
