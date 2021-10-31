@@ -276,27 +276,6 @@ fn get_next_block_type(axml_buff: &mut Cursor<Vec<u8>>) -> Result<u16, Error> {
     Ok(block_type)
 }
 
-fn print_block_type(block_type: u16) {
-    match block_type {
-        0x0000 => println!("RES_NULL_TYPE"),
-        0x0001 => println!("RES_STRING_POOL_TYPE"),
-        0x0002 => println!("RES_TABLE_TYPE"),
-        0x0003 => println!("RES_XML_TYPE"),
-        0x0100 => println!("RES_XML_START_NAMESPACE_TYPE"),
-        0x0101 => println!("RES_XML_END_NAMESPACE_TYPE"),
-        0x0102 => println!("RES_XML_START_ELEMENT_TYPE"),
-        0x0103 => println!("RES_XML_END_ELEMENT_TYPE"),
-        0x0104 => println!("RES_XML_CDATA_TYPE"),
-        0x017f => println!("RES_XML_LAST_CHUNK_TYPE"),
-        0x0180 => println!("RES_XML_RESOURCE_MAP_TYPE"),
-        0x0200 => println!("RES_TABLE_PACKAGE_TYPE"),
-        0x0201 => println!("RES_TABLE_TYPE_TYPE"),
-        0x0202 => println!("RES_TABLE_TYPE_SPEC_TYPE"),
-        0x0203 => println!("RES_TABLE_LIBRARY_TYPE"),
-        _ => println!("Unknown: {:02X}", block_type)
-    };
-}
-
 fn main() {
     /* Check CLI arguments */
     let args: Vec<String> = env::args().collect();
@@ -344,38 +323,4 @@ fn main() {
             _ => println!("{:02X}, other", block_type),
         }
     }
-
-    // read(&mut axml_buff);
-    let string_pool = StringPool::from_buff(&mut axml_buff)
-                             .expect("Error: cannot parse string pool header");
-    string_pool.print();
-
-    let next_block_type = axml_buff.read_u16::<LittleEndian>().unwrap();
-    println!("next block type {:02X}", next_block_type);
-    print_block_type(next_block_type);
-    let next_block_type = axml_buff.read_u16::<LittleEndian>().unwrap();
-    println!("next block type {:02X}", next_block_type);
-    print_block_type(next_block_type);
-    let next_block_type = axml_buff.read_u16::<LittleEndian>().unwrap();
-    println!("next block type {:02X}", next_block_type);
-    print_block_type(next_block_type);
-    let next_block_type = axml_buff.read_u16::<LittleEndian>().unwrap();
-    println!("next block type {:02X}", next_block_type);
-    print_block_type(next_block_type);
-
-    // let next_block_type = get_next_block_type(axml_buff).unwrap();
-    // println!("after {:02X}", next_block_type);
-
-    // read(&axml_buff[header.header_size as usize..]);
-}
-
-fn read(data: &mut Cursor<Vec<u8>>) {
-    println!("Type: {:02X}", data.read_u16::<LittleEndian>().unwrap());
-    println!("Header size: {:02X}", data.read_u16::<LittleEndian>().unwrap());
-    println!("Sizecount: {:02X}", data.read_u32::<LittleEndian>().unwrap());
-    println!("Strings count: {:02X}", data.read_u32::<LittleEndian>().unwrap());
-    println!("Styles count: {:02X}", data.read_u32::<LittleEndian>().unwrap());
-    println!("Flags: {:02X}", data.read_u32::<LittleEndian>().unwrap());
-    println!("Strings start: {:02X}", data.read_u32::<LittleEndian>().unwrap());
-    println!("Styles start: {:02X}", data.read_u32::<LittleEndian>().unwrap());
 }
