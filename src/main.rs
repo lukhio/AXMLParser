@@ -273,8 +273,6 @@ impl ResourceMap {
         let header = ChunkHeader::from_buff(axml_buff, XmlTypes::RES_XML_RESOURCE_MAP_TYPE)
                      .expect("Error: cannot get chunk header from string pool");
 
-        header.print();
-
         /* Get resources IDs */
         let mut resources = Vec::new();
         let nb_resources = (header.size / 4) - 2;
