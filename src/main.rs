@@ -160,7 +160,7 @@ struct StringPool {
     strings: HashMap<u32, String>,
 }
 
-impl StringPool{
+impl StringPool {
 
     fn from_buff(axml_buff: &mut Cursor<Vec<u8>>) -> Result<Self, Error> {
         /* Go back 2 bytes, to account from the block type */
