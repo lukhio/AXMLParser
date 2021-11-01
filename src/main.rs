@@ -103,6 +103,7 @@ impl ChunkHeader {
     }
 
     fn print(&self) {
+        println!("----- Chunk header -----");
         println!("Header chunk_type: {:02X}", self.chunk_type);
         println!("Header header_size: {:02X}", self.header_size);
         println!("Chunk size: {:04X}", self.size);
@@ -241,12 +242,17 @@ impl StringPool {
 
     fn print(&self) {
         self.header.print();
+        println!("----- String pool header -----");
         println!("String count: {:02X}", self.string_count);
         println!("Style count: {:02X}", self.style_count);
         println!("Flags: {:02X}", self.flags);
         println!("Is UTF-8: {:?}", self.is_utf8);
         println!("Strings start: {:02X}", self.strings_start);
         println!("Styles start: {:02X}", self.styles_start);
+        println!("--------------------");
+        for (offset, string) in self.strings.iter() {
+            println!("{}: {}", offset, string);
+        }
         println!("--------------------");
     }
 }
@@ -289,9 +295,11 @@ impl ResourceMap {
 
     fn print(&self) {
         self.header.print();
+        println!("----- Resource map header -----");
         println!("Resource ID map:");
         for item in self.resources_id.iter() {
-            println!("{:02}", item);
+            let string = get_resource_string(*item).unwrap();
+            println!("{:?}", string);
         }
         println!("--------------------");
     }
@@ -336,6 +344,13 @@ fn parse_start_namespace(axml_buff: &mut Cursor<Vec<u8>>) {
     let comment = axml_buff.read_u32::<LittleEndian>().unwrap();
     let prefix = axml_buff.read_u32::<LittleEndian>().unwrap();
     let uri = axml_buff.read_u32::<LittleEndian>().unwrap();
+
+    header.print();
+    println!("----- Start namespace header -----");
+    println!("line number: {}", line_number);
+    println!("comment: {}", comment);
+    println!("prefix: {}", prefix);
+    println!("uri: {}", uri);
 }
 
 fn main() {
