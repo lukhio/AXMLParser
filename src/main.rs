@@ -74,7 +74,7 @@ impl ChunkHeader {
 
         /* Check if this is indeed of the expected type */
         if chunk_type != expected_type {
-            panic!("Error: chunk is not an XML chunk");
+            panic!("Error: unexpected XML chunk type");
         }
 
         /* Get chunk header size and total size */
@@ -105,7 +105,7 @@ impl ChunkHeader {
     fn print(&self) {
         println!("Header chunk_type: {:02X}", self.chunk_type);
         println!("Header header_size: {:02X}", self.header_size);
-        println!("File size: {:04X}", self.size);
+        println!("Chunk size: {:04X}", self.size);
         println!("--------------------");
     }
 }
