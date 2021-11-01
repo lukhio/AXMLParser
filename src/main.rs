@@ -323,6 +323,21 @@ fn get_next_block_type(axml_buff: &mut Cursor<Vec<u8>>) -> Result<u16, Error> {
     Ok(block_type)
 }
 
+fn parse_start_namespace(axml_buff: &mut Cursor<Vec<u8>>) {
+    /* Go back 2 bytes, to account from the block type */
+    let offset = axml_buff.position();
+    axml_buff.set_position(offset - 2);
+
+    /* Parse chunk header */
+    let header = ChunkHeader::from_buff(axml_buff, XmlTypes::RES_XML_START_NAMESPACE_TYPE)
+                 .expect("Error: cannot get header from start namespace chunk");
+
+    let line_number = axml_buff.read_u32::<LittleEndian>().unwrap();
+    let comment = axml_buff.read_u32::<LittleEndian>().unwrap();
+    let prefix = axml_buff.read_u32::<LittleEndian>().unwrap();
+    let uri = axml_buff.read_u32::<LittleEndian>().unwrap();
+}
+
 fn main() {
     /* Check CLI arguments */
     let args: Vec<String> = env::args().collect();
@@ -361,7 +376,9 @@ fn main() {
             },
             XmlTypes::RES_TABLE_TYPE => println!("TODO: RES_TABLE_TYPE"),
             XmlTypes::RES_XML_TYPE => println!("TODO: RES_XML_TYPE"),
-            XmlTypes::RES_XML_START_NAMESPACE_TYPE => println!("TODO: RES_XML_START_NAMESPACE_TYPE"),
+            XmlTypes::RES_XML_START_NAMESPACE_TYPE => {
+                parse_start_namespace(&mut axml_buff);
+            },
             XmlTypes::RES_XML_END_NAMESPACE_TYPE => println!("TODO: RES_XML_END_NAMESPACE_TYPE"),
             XmlTypes::RES_XML_START_ELEMENT_TYPE => println!("TODO: RES_XML_START_ELEMENT_TYPE"),
             XmlTypes::RES_XML_END_ELEMENT_TYPE => println!("TODO: RES_XML_END_ELEMENT_TYPE"),
