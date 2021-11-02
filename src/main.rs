@@ -417,7 +417,11 @@ impl ResValue {
 }
 
 fn get_next_block_type(axml_buff: &mut Cursor<Vec<u8>>) -> Result<u16, Error> {
-    let raw_block_type = axml_buff.read_u16::<LittleEndian>().unwrap();
+    let raw_block_type = axml_buff.read_u16::<LittleEndian>();
+    let raw_block_type = match raw_block_type {
+        Ok(block) => block,
+        Err(e) => return Err(e),
+    };
 
     let block_type = match raw_block_type {
         0x0000 => XmlTypes::RES_NULL_TYPE,
@@ -617,6 +621,9 @@ fn main() {
             _ => println!("{:02X}, other", block_type),
         }
     }
+
+    println!("==========");
+    println!("Finished parsing file.");
 }
 
 fn get_resource_string(mut id: u32) -> Result<String, Error> {
