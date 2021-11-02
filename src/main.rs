@@ -304,10 +304,10 @@ impl ResourceMap {
     }
 }
 
-struct data_value_type {}
+struct DataValueType {}
 
 #[allow(dead_code)]
-impl data_value_type {
+impl DataValueType {
     /* The 'data' is either 0 or 1, specifying this resource is either undefined or empty,
      * respectively */
     pub const TYPE_NULL: u8	                = 0x00;
@@ -357,17 +357,63 @@ impl data_value_type {
 
     /* ...end of integer flavors */
     pub const TYPE_LAST_INT: u8	            = 0x1f;
+
+    fn from_val(value: u8) -> u8 {
+        return match value {
+            0x00 => DataValueType::TYPE_NULL,
+            0x01 => DataValueType::TYPE_REFERENCE,
+            0x02 => DataValueType::TYPE_ATTRIBUTE,
+            0x03 => DataValueType::TYPE_STRING,
+            0x04 => DataValueType::TYPE_FLOAT,
+            0x05 => DataValueType::TYPE_DIMENSION,
+            0x06 => DataValueType::TYPE_FRACTION,
+            0x07 => DataValueType::TYPE_DYNAMIC_REFERENCE,
+            0x08 => DataValueType::TYPE_DYNAMIC_ATTRIBUTE,
+            0x10 => DataValueType::TYPE_INT_DEC,
+            0x11 => DataValueType::TYPE_INT_HEX,
+            0x12 => DataValueType::TYPE_INT_BOOLEAN,
+            0x1c => DataValueType::TYPE_INT_COLOR_ARGB8,
+            0x1d => DataValueType::TYPE_INT_COLOR_RGB8,
+            0x1e => DataValueType::TYPE_INT_COLOR_ARGB4,
+            0x1f => DataValueType::TYPE_INT_COLOR_RGB4,
+            _ => DataValueType::TYPE_NULL,
+        }
+    }
 }
 
 /* Representation of a value in a resource, supplying type
  * information.
  */
-struct res_value {
+struct ResValue {
     /* Number of bytes in this structure */
     size: u16,
 
     /* Always set to 0 */
     res0: u8,
+
+    data_type: u8,
+    data: u32,
+}
+
+impl ResValue {
+    fn from_buff(axml_buff: &mut Cursor<Vec<u8>>) -> Result<Self, Error> {
+        let size = axml_buff.read_u16::<LittleEndian>().unwrap();
+        let res0 = axml_buff.read_u8().unwrap();
+
+        if res0 != 0 {
+            panic!("res0 is not 0");
+        }
+
+        let data_type = DataValueType::from_val(axml_buff.read_u8().unwrap());
+        let data = axml_buff.read_u32::<LittleEndian>().unwrap();
+
+        Ok(ResValue {
+            size: size,
+            res0: res0,
+            data_type: data_type,
+            data: data
+        })
+    }
 }
 
 fn get_next_block_type(axml_buff: &mut Cursor<Vec<u8>>) -> Result<u16, Error> {
@@ -448,7 +494,13 @@ fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>) {
         let attr_namespace = axml_buff.read_u32::<LittleEndian>().unwrap();
         let attr_name = axml_buff.read_u32::<LittleEndian>().unwrap();
         let attr_raw_val = axml_buff.read_u32::<LittleEndian>().unwrap();
-        let value = axml_buff.read_u8().unwrap();
+        // let data_value_type = axml_buff.read_u64::<LittleEndian>().unwrap();
+        let data_value_type = ResValue::from_buff(axml_buff);
+        println!("--- attr_namespace {:02X}", attr_namespace);
+        println!("--- attr_name {:02X}", attr_name);
+        println!("--- attr_raw_val {:02X}", attr_raw_val);
+        // println!("--- data_value_type {:02X}", data_value_type);
+        println!("----------");
     }
 }
 
@@ -490,6 +542,7 @@ fn main() {
             },
             XmlTypes::RES_TABLE_TYPE => println!("TODO: RES_TABLE_TYPE"),
             XmlTypes::RES_XML_TYPE => println!("TODO: RES_XML_TYPE"),
+
             XmlTypes::RES_XML_START_NAMESPACE_TYPE => {
                 parse_start_namespace(&mut axml_buff);
             },
@@ -500,15 +553,18 @@ fn main() {
             XmlTypes::RES_XML_END_ELEMENT_TYPE => println!("TODO: RES_XML_END_ELEMENT_TYPE"),
             XmlTypes::RES_XML_CDATA_TYPE => println!("TODO: RES_XML_CDATA_TYPE"),
             XmlTypes::RES_XML_LAST_CHUNK_TYPE => println!("TODO: RES_XML_LAST_CHUNK_TYPE"),
+
             XmlTypes::RES_XML_RESOURCE_MAP_TYPE => {
                 let resource_map = ResourceMap::from_buff(&mut axml_buff)
                                                 .expect("Error: cannot parse resource map");
                 resource_map.print();
             },
+
             XmlTypes::RES_TABLE_PACKAGE_TYPE => println!("TODO: RES_TABLE_PACKAGE_TYPE"),
             XmlTypes::RES_TABLE_TYPE_TYPE => println!("TODO: RES_TABLE_TYPE_TYPE"),
             XmlTypes::RES_TABLE_TYPE_SPEC_TYPE => println!("TODO: RES_TABLE_TYPE_SPEC_TYPE"),
             XmlTypes::RES_TABLE_LIBRARY_TYPE => println!("TODO: RES_TABLE_LIBRARY_TYPE"),
+
             _ => println!("{:02X}, other", block_type),
         }
     }
