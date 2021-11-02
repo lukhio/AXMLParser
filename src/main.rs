@@ -457,10 +457,10 @@ fn parse_start_namespace(axml_buff: &mut Cursor<Vec<u8>>) {
 
     header.print();
     println!("----- Start namespace header -----");
-    println!("line number: {}", line_number);
-    println!("comment: {}", comment);
-    println!("prefix: {}", prefix);
-    println!("uri: {}", uri);
+    println!("line number: {:02X}", line_number);
+    println!("comment: {:02X}", comment);
+    println!("prefix: {:02X}", prefix);
+    println!("uri: {:02X}", uri);
 }
 
 fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>) {
@@ -484,11 +484,11 @@ fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>) {
 
     header.print();
     println!("----- Start element header -----");
-    println!("line number: {}", line_number);
-    println!("comment: {}", comment);
-    println!("namespace: {}", namespace);
-    println!("name: {}", name);
-    println!("attribute count: {}", attribute_count);
+    println!("line number: {:02X}", line_number);
+    println!("comment: {:02X}", comment);
+    println!("namespace: {:02X}", namespace);
+    println!("name: {:02X}", name);
+    println!("attribute count: {:02X}", attribute_count);
 
     for _ in 0..attribute_count {
         let attr_namespace = axml_buff.read_u32::<LittleEndian>().unwrap();
