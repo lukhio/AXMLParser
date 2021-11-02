@@ -165,8 +165,8 @@ impl StringPool {
 
     fn from_buff(axml_buff: &mut Cursor<Vec<u8>>) -> Result<Self, Error> {
         /* Go back 2 bytes, to account from the block type */
-        let offset = axml_buff.position();
-        axml_buff.set_position(offset - 2);
+        let initial_offset = axml_buff.position();
+        axml_buff.set_position(initial_offset - 2);
 
         /* Parse chunk header */
         let header = ChunkHeader::from_buff(axml_buff, XmlTypes::RES_STRING_POOL_TYPE)
@@ -198,30 +198,29 @@ impl StringPool {
         let mut strings = HashMap::<u32, String>::new();
         let mut offset = 0;
 
-        while strings.len() < string_count as usize {
+        for offset in strings_offsets.iter() {
+            let current_start = (strings_start + offset + 8) as u64;
+            axml_buff.set_position(current_start);
+
             let str_size;
             let decoded_string;
 
             if is_utf8 {
-                str_size = axml_buff.read_u8().unwrap() as u16;
+                str_size = axml_buff.read_u8().unwrap() as u32;
                 let mut str_buff = Vec::with_capacity(str_size as usize);
                 let mut chunk = axml_buff.take(str_size.into());
 
                 chunk.read_to_end(&mut str_buff).unwrap();
                 decoded_string = String::from_utf8(str_buff).unwrap();
-
-                // strings.insert(offset, decoded_string);
-                // offset += str_size as u32;
             } else {
-                str_size = axml_buff.read_u16::<LittleEndian>().unwrap();
+                str_size = axml_buff.read_u16::<LittleEndian>().unwrap() as u32;
                 let iter = (0..str_size as usize)
-                           .map(|_| axml_buff.read_u16::<LittleEndian>().unwrap());
+                        .map(|_| axml_buff.read_u16::<LittleEndian>().unwrap());
                 decoded_string = std::char::decode_utf16(iter).collect::<Result<String, _>>().unwrap();
             }
 
             if str_size > 0 {
-                strings.insert(offset, decoded_string);
-                offset += str_size as u32;
+                strings.insert(*offset, decoded_string);
             }
         }
 
@@ -251,7 +250,7 @@ impl StringPool {
         println!("Styles start: {:02X}", self.styles_start);
         println!("--------------------");
         for (offset, string) in self.strings.iter() {
-            println!("{}: {}", offset, string);
+            println!("{:02X}: {}", offset, string);
         }
         println!("--------------------");
     }
