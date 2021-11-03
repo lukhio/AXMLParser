@@ -163,7 +163,9 @@ struct StringPool {
 
 impl StringPool {
 
-    fn from_buff(axml_buff: &mut Cursor<Vec<u8>>) -> Result<Self, Error> {
+    fn from_buff(axml_buff: &mut Cursor<Vec<u8>>,
+                 global_strings: &mut Vec<String>) -> Result<Self, Error> {
+
         /* Go back 2 bytes, to account from the block type */
         let initial_offset = axml_buff.position();
         axml_buff.set_position(initial_offset - 2);
@@ -195,8 +197,6 @@ impl StringPool {
         }
 
         /* Strings */
-        let mut strings = Vec::new();
-
         for offset in strings_offsets.iter() {
             let current_start = (strings_start + offset + 8) as u64;
             axml_buff.set_position(current_start);
@@ -219,7 +219,7 @@ impl StringPool {
             }
 
             if str_size > 0 {
-                strings.push(decoded_string);
+                global_strings.push(decoded_string);
             }
         }
 
@@ -234,7 +234,7 @@ impl StringPool {
             styles_start: styles_start,
             strings_offsets: strings_offsets,
             styles_offsets: styles_offsets,
-            strings: strings
+            strings: global_strings.to_vec(),
         })
     }
 
@@ -596,7 +596,6 @@ fn main() {
     header.print();
 
     /* Now parsing the rest of the file */
-    /* TODO: probably not the best way to do this */
     let mut global_strings = Vec::new();
     let mut namespace_prefixes = HashMap::<String, String>::new();
 
@@ -610,11 +609,8 @@ fn main() {
         match block_type {
             XmlTypes::RES_NULL_TYPE => continue,
             XmlTypes::RES_STRING_POOL_TYPE => {
-                let string_pool = StringPool::from_buff(&mut axml_buff)
-                                            .expect("Error: cannot parse string pool header");
-                for string in string_pool.strings.iter() {
-                    global_strings.push(string.to_string());
-                }
+                StringPool::from_buff(&mut axml_buff, &mut global_strings)
+                           .expect("Error: cannot parse string pool header");
             },
             XmlTypes::RES_TABLE_TYPE => panic!("TODO: RES_TABLE_TYPE"),
             XmlTypes::RES_XML_TYPE => panic!("TODO: RES_XML_TYPE"),
