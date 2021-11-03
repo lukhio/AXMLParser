@@ -440,7 +440,7 @@ fn get_next_block_type(axml_buff: &mut Cursor<Vec<u8>>) -> Result<u16, Error> {
     Ok(block_type)
 }
 
-fn parse_start_namespace(axml_buff: &mut Cursor<Vec<u8>>) {
+fn parse_start_namespace(axml_buff: &mut Cursor<Vec<u8>>, strings: &Vec::<String>) {
     /* Go back 2 bytes, to account from the block type */
     let offset = axml_buff.position();
     axml_buff.set_position(offset - 2);
@@ -454,12 +454,9 @@ fn parse_start_namespace(axml_buff: &mut Cursor<Vec<u8>>) {
     let prefix = axml_buff.read_u32::<LittleEndian>().unwrap();
     let uri = axml_buff.read_u32::<LittleEndian>().unwrap();
 
-    header.print();
     println!("----- Start namespace header -----");
-    println!("line number: {:02X}", line_number);
-    println!("comment: {:02X}", comment);
-    println!("prefix: {:02X}", prefix);
-    println!("uri: {:02X}", uri);
+    println!("prefix: {:?}", strings.get(prefix as usize).unwrap());
+    println!("uri: {:?}", strings.get(uri as usize).unwrap());
 }
 
 fn parse_end_namespace(axml_buff: &mut Cursor<Vec<u8>>) {
@@ -476,15 +473,10 @@ fn parse_end_namespace(axml_buff: &mut Cursor<Vec<u8>>) {
     let prefix = axml_buff.read_u32::<LittleEndian>().unwrap();
     let uri = axml_buff.read_u32::<LittleEndian>().unwrap();
 
-    header.print();
     println!("----- End namespace header -----");
-    println!("line number: {:02X}", line_number);
-    println!("comment: {:02X}", comment);
-    println!("prefix: {:02X}", prefix);
-    println!("uri: {:02X}", uri);
 }
 
-fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>) {
+fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>, strings: &Vec::<String>) {
     /* Go back 2 bytes, to account from the block type */
     let offset = axml_buff.position();
     axml_buff.set_position(offset - 2);
@@ -503,25 +495,62 @@ fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>) {
     let class_index = axml_buff.read_u16::<LittleEndian>().unwrap();
     let style_index = axml_buff.read_u16::<LittleEndian>().unwrap();
 
-    header.print();
     println!("----- Start element header -----");
-    println!("line number: {:02X}", line_number);
-    println!("comment: {:02X}", comment);
-    println!("namespace: {:02X}", namespace);
-    println!("name: {:02X}", name);
+    if namespace != 0xffffffff {
+        println!("namespace: {:?}", strings.get(namespace as usize).unwrap());
+    }
+    println!("name: {:?}", strings.get(name as usize).unwrap());
+
     println!("attribute count: {:02X}", attribute_count);
 
     for _ in 0..attribute_count {
         let attr_namespace = axml_buff.read_u32::<LittleEndian>().unwrap();
         let attr_name = axml_buff.read_u32::<LittleEndian>().unwrap();
         let attr_raw_val = axml_buff.read_u32::<LittleEndian>().unwrap();
-        // let data_value_type = axml_buff.read_u64::<LittleEndian>().unwrap();
-        let data_value_type = ResValue::from_buff(axml_buff);
-        println!("--- attr_namespace {:02X}", attr_namespace);
-        println!("--- attr_name {:02X}", attr_name);
-        println!("--- attr_raw_val {:02X}", attr_raw_val);
-        // println!("--- data_value_type {:02X}", data_value_type);
-        println!("----------");
+        let data_value_type = ResValue::from_buff(axml_buff).unwrap();
+
+        if attr_namespace != 0xffffffff {
+            println!("--- attr_namespace: {:?}", strings.get(attr_namespace as usize).unwrap());
+        }
+
+        let mut decoded_attr = String::from(strings.get(attr_name as usize).unwrap());
+        decoded_attr.push('=');
+        // println!("--- attr_name: {:?}", strings.get(attr_name as usize).unwrap());
+        if attr_raw_val != 0xffffffff {
+            // println!("--- attr_raw_val: {:?}", strings.get(attr_raw_val as usize).unwrap());
+            decoded_attr.push_str(&format!("\"{}\"", strings.get(attr_raw_val as usize).unwrap()));
+        } else {
+            match data_value_type.data_type {
+                DataValueType::TYPE_NULL => println!("TODO: DataValueType::TYPE_NULL"),
+                DataValueType::TYPE_REFERENCE => println!("TODO: DataValueType::TYPE_REFERENCE"),
+                DataValueType::TYPE_ATTRIBUTE => println!("TODO: DataValueType::TYPE_ATTRIBUTE"),
+                DataValueType::TYPE_STRING => println!("TODO: DataValueType::TYPE_STRING"),
+                DataValueType::TYPE_FLOAT => println!("TODO: DataValueType::TYPE_FLOAT"),
+                DataValueType::TYPE_DIMENSION => println!("TODO: DataValueType::TYPE_DIMENSION"),
+                DataValueType::TYPE_FRACTION => println!("TODO: DataValueType::TYPE_FRACTION"),
+                DataValueType::TYPE_DYNAMIC_REFERENCE => println!("TODO: DataValueType::TYPE_DYNAMIC_REFERENCE"),
+                DataValueType::TYPE_DYNAMIC_ATTRIBUTE => println!("TODO: DataValueType::TYPE_DYNAMIC_ATTRIBUTE"),
+                DataValueType::TYPE_INT_DEC => decoded_attr.push_str(&data_value_type.data.to_string()),
+                DataValueType::TYPE_INT_HEX => {
+                    decoded_attr.push_str("0x");
+                    decoded_attr.push_str(&format!("{:x}", &data_value_type.data).to_string());
+                },
+                DataValueType::TYPE_INT_BOOLEAN => {
+                    if data_value_type.data == 0 {
+                        decoded_attr.push_str("\"false\"");
+                    } else {
+                        decoded_attr.push_str("\"true\"");
+                    }
+                },
+                DataValueType::TYPE_INT_COLOR_ARGB8 => println!("TODO: DataValueType::TYPE_INT_COLOR_ARGB8"),
+                DataValueType::TYPE_INT_COLOR_RGB8 => println!("TODO: DataValueType::TYPE_INT_COLOR_RGB8"),
+                DataValueType::TYPE_INT_COLOR_ARGB4 => println!("TODO: DataValueType::TYPE_INT_COLOR_ARGB4"),
+                DataValueType::TYPE_INT_COLOR_RGB4 => println!("TODO: DataValueType::TYPE_INT_COLOR_RGB4"),
+                _ => println!("DataValueType::TYPE_NULL"),
+            }
+        }
+        println!("===== {}", decoded_attr);
+
     }
 }
 
@@ -538,14 +567,6 @@ fn parse_end_element(axml_buff: &mut Cursor<Vec<u8>>) {
     let comment = axml_buff.read_u32::<LittleEndian>().unwrap();
     let namespace = axml_buff.read_u32::<LittleEndian>().unwrap();
     let name = axml_buff.read_u32::<LittleEndian>().unwrap();
-
-    header.print();
-    println!("----- End element header -----");
-    println!("line number: {:02X}", line_number);
-    println!("comment: {:02X}", comment);
-    println!("namespace: {:02X}", namespace);
-    println!("name: {:02X}", name);
-
 }
 
 fn main() {
@@ -570,6 +591,9 @@ fn main() {
     header.print();
 
     /* Now parsing the rest of the file */
+    /* TODO: probably not the best way to do this */
+    let mut global_strings = Vec::new();
+
     loop {
         let block_type = get_next_block_type(&mut axml_buff);
         let block_type = match block_type {
@@ -578,29 +602,31 @@ fn main() {
         };
 
         match block_type {
-            XmlTypes::RES_NULL_TYPE => continue, //println!("null"),
+            XmlTypes::RES_NULL_TYPE => continue,
             XmlTypes::RES_STRING_POOL_TYPE => {
                 let string_pool = StringPool::from_buff(&mut axml_buff)
                                             .expect("Error: cannot parse string pool header");
-                string_pool.print();
+                for string in string_pool.strings.iter() {
+                    global_strings.push(string.to_string());
+                }
             },
-            XmlTypes::RES_TABLE_TYPE => println!("TODO: RES_TABLE_TYPE"),
-            XmlTypes::RES_XML_TYPE => println!("TODO: RES_XML_TYPE"),
+            XmlTypes::RES_TABLE_TYPE => panic!("TODO: RES_TABLE_TYPE"),
+            XmlTypes::RES_XML_TYPE => panic!("TODO: RES_XML_TYPE"),
 
             XmlTypes::RES_XML_START_NAMESPACE_TYPE => {
-                parse_start_namespace(&mut axml_buff);
+                parse_start_namespace(&mut axml_buff, &global_strings);
             },
             XmlTypes::RES_XML_END_NAMESPACE_TYPE => {
                 parse_end_namespace(&mut axml_buff);
             },
             XmlTypes::RES_XML_START_ELEMENT_TYPE => {
-                parse_start_element(&mut axml_buff);
+                parse_start_element(&mut axml_buff, &global_strings);
             },
             XmlTypes::RES_XML_END_ELEMENT_TYPE => {
                 parse_end_element(&mut axml_buff);
             },
-            XmlTypes::RES_XML_CDATA_TYPE => println!("TODO: RES_XML_CDATA_TYPE"),
-            XmlTypes::RES_XML_LAST_CHUNK_TYPE => println!("TODO: RES_XML_LAST_CHUNK_TYPE"),
+            XmlTypes::RES_XML_CDATA_TYPE => panic!("TODO: RES_XML_CDATA_TYPE"),
+            XmlTypes::RES_XML_LAST_CHUNK_TYPE => panic!("TODO: RES_XML_LAST_CHUNK_TYPE"),
 
             XmlTypes::RES_XML_RESOURCE_MAP_TYPE => {
                 let resource_map = ResourceMap::from_buff(&mut axml_buff)
@@ -608,10 +634,10 @@ fn main() {
                 resource_map.print();
             },
 
-            XmlTypes::RES_TABLE_PACKAGE_TYPE => println!("TODO: RES_TABLE_PACKAGE_TYPE"),
-            XmlTypes::RES_TABLE_TYPE_TYPE => println!("TODO: RES_TABLE_TYPE_TYPE"),
-            XmlTypes::RES_TABLE_TYPE_SPEC_TYPE => println!("TODO: RES_TABLE_TYPE_SPEC_TYPE"),
-            XmlTypes::RES_TABLE_LIBRARY_TYPE => println!("TODO: RES_TABLE_LIBRARY_TYPE"),
+            XmlTypes::RES_TABLE_PACKAGE_TYPE => panic!("TODO: RES_TABLE_PACKAGE_TYPE"),
+            XmlTypes::RES_TABLE_TYPE_TYPE => panic!("TODO: RES_TABLE_TYPE_TYPE"),
+            XmlTypes::RES_TABLE_TYPE_SPEC_TYPE => panic!("TODO: RES_TABLE_TYPE_SPEC_TYPE"),
+            XmlTypes::RES_TABLE_LIBRARY_TYPE => panic!("TODO: RES_TABLE_LIBRARY_TYPE"),
 
             _ => println!("{:02X}, other", block_type),
         }
