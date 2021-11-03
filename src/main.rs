@@ -440,7 +440,9 @@ fn get_next_block_type(axml_buff: &mut Cursor<Vec<u8>>) -> Result<u16, Error> {
     Ok(block_type)
 }
 
-fn parse_start_namespace(axml_buff: &mut Cursor<Vec<u8>>, strings: &Vec::<String>) {
+fn parse_start_namespace(axml_buff: &mut Cursor<Vec<u8>>,
+                         strings: &Vec::<String>,
+                         namespaces: &mut HashMap::<String, String>) {
     /* Go back 2 bytes, to account from the block type */
     let offset = axml_buff.position();
     axml_buff.set_position(offset - 2);
@@ -453,6 +455,10 @@ fn parse_start_namespace(axml_buff: &mut Cursor<Vec<u8>>, strings: &Vec::<String
     let comment = axml_buff.read_u32::<LittleEndian>().unwrap();
     let prefix = axml_buff.read_u32::<LittleEndian>().unwrap();
     let uri = axml_buff.read_u32::<LittleEndian>().unwrap();
+
+    let prefix_str = strings.get(prefix as usize).unwrap();
+    let uri_str = strings.get(uri as usize).unwrap();
+    namespaces.insert(uri_str.to_string(), prefix_str.to_string());
 
     println!("----- Start namespace header -----");
     println!("prefix: {:?}", strings.get(prefix as usize).unwrap());
@@ -550,7 +556,6 @@ fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>, strings: &Vec::<String>)
             }
         }
         println!("===== {}", decoded_attr);
-
     }
 }
 
@@ -593,6 +598,7 @@ fn main() {
     /* Now parsing the rest of the file */
     /* TODO: probably not the best way to do this */
     let mut global_strings = Vec::new();
+    let mut namespace_prefixes = HashMap::<String, String>::new();
 
     loop {
         let block_type = get_next_block_type(&mut axml_buff);
@@ -614,7 +620,7 @@ fn main() {
             XmlTypes::RES_XML_TYPE => panic!("TODO: RES_XML_TYPE"),
 
             XmlTypes::RES_XML_START_NAMESPACE_TYPE => {
-                parse_start_namespace(&mut axml_buff, &global_strings);
+                parse_start_namespace(&mut axml_buff, &global_strings, &mut namespace_prefixes);
             },
             XmlTypes::RES_XML_END_NAMESPACE_TYPE => {
                 parse_end_namespace(&mut axml_buff);
