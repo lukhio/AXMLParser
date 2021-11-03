@@ -158,7 +158,7 @@ struct StringPool {
 
     strings_offsets: Vec<u32>,
     styles_offsets: Vec<u32>,
-    strings: HashMap<u32, String>,
+    strings: Vec<String>,
 }
 
 impl StringPool {
@@ -195,8 +195,7 @@ impl StringPool {
         }
 
         /* Strings */
-        let mut strings = HashMap::<u32, String>::new();
-        let mut offset = 0;
+        let mut strings = Vec::new();
 
         for offset in strings_offsets.iter() {
             let current_start = (strings_start + offset + 8) as u64;
@@ -220,7 +219,7 @@ impl StringPool {
             }
 
             if str_size > 0 {
-                strings.insert(*offset, decoded_string);
+                strings.push(decoded_string);
             }
         }
 
@@ -248,10 +247,6 @@ impl StringPool {
         println!("Is UTF-8: {:?}", self.is_utf8);
         println!("Strings start: {:02X}", self.strings_start);
         println!("Styles start: {:02X}", self.styles_start);
-        println!("--------------------");
-        for (offset, string) in self.strings.iter() {
-            println!("{:02X}: {}", offset, string);
-        }
         println!("--------------------");
     }
 }
