@@ -465,7 +465,8 @@ fn parse_start_namespace(axml_buff: &mut Cursor<Vec<u8>>,
     println!("uri: {:?}", strings.get(uri as usize).unwrap());
 }
 
-fn parse_end_namespace(axml_buff: &mut Cursor<Vec<u8>>) {
+fn parse_end_namespace(axml_buff: &mut Cursor<Vec<u8>>,
+                       strings: &Vec::<String>) {
     /* Go back 2 bytes, to account from the block type */
     let offset = axml_buff.position();
     axml_buff.set_position(offset - 2);
@@ -480,9 +481,13 @@ fn parse_end_namespace(axml_buff: &mut Cursor<Vec<u8>>) {
     let uri = axml_buff.read_u32::<LittleEndian>().unwrap();
 
     println!("----- End namespace header -----");
+    println!("prefix: {:?}", strings.get(prefix as usize).unwrap());
+    println!("uri: {:?}", strings.get(uri as usize).unwrap());
 }
 
-fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>, strings: &Vec::<String>) {
+fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>,
+                       strings: &Vec::<String>,
+                       namespace_prefixes: &HashMap::<String, String>) {
     /* Go back 2 bytes, to account from the block type */
     let offset = axml_buff.position();
     axml_buff.set_position(offset - 2);
@@ -515,15 +520,23 @@ fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>, strings: &Vec::<String>)
         let attr_raw_val = axml_buff.read_u32::<LittleEndian>().unwrap();
         let data_value_type = ResValue::from_buff(axml_buff).unwrap();
 
+        let mut decoded_attr = String::new();
+
         if attr_namespace != 0xffffffff {
+            // TODO: cleanup this
+            let ns_prefix = namespace_prefixes.get(strings.get(attr_namespace as usize).unwrap()).unwrap();
             println!("--- attr_namespace: {:?}", strings.get(attr_namespace as usize).unwrap());
+            println!("--- prefix: {:?}", ns_prefix);
+            decoded_attr.push_str(ns_prefix);
+            decoded_attr.push(':');
+        } else {
+            // TODO
         }
 
-        let mut decoded_attr = String::from(strings.get(attr_name as usize).unwrap());
+        decoded_attr.push_str(strings.get(attr_name as usize).unwrap());
         decoded_attr.push('=');
-        // println!("--- attr_name: {:?}", strings.get(attr_name as usize).unwrap());
+
         if attr_raw_val != 0xffffffff {
-            // println!("--- attr_raw_val: {:?}", strings.get(attr_raw_val as usize).unwrap());
             decoded_attr.push_str(&format!("\"{}\"", strings.get(attr_raw_val as usize).unwrap()));
         } else {
             match data_value_type.data_type {
@@ -559,7 +572,8 @@ fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>, strings: &Vec::<String>)
     }
 }
 
-fn parse_end_element(axml_buff: &mut Cursor<Vec<u8>>) {
+fn parse_end_element(axml_buff: &mut Cursor<Vec<u8>>,
+                     strings: &Vec::<String>) {
     /* Go back 2 bytes, to account from the block type */
     let offset = axml_buff.position();
     axml_buff.set_position(offset - 2);
@@ -572,6 +586,10 @@ fn parse_end_element(axml_buff: &mut Cursor<Vec<u8>>) {
     let comment = axml_buff.read_u32::<LittleEndian>().unwrap();
     let namespace = axml_buff.read_u32::<LittleEndian>().unwrap();
     let name = axml_buff.read_u32::<LittleEndian>().unwrap();
+
+    println!("----- End element header -----");
+    // println!("namespace: {:?}", strings.get(namespace as usize).unwrap());
+    println!("name: {:?}", strings.get(name as usize).unwrap());
 }
 
 fn main() {
@@ -619,13 +637,13 @@ fn main() {
                 parse_start_namespace(&mut axml_buff, &global_strings, &mut namespace_prefixes);
             },
             XmlTypes::RES_XML_END_NAMESPACE_TYPE => {
-                parse_end_namespace(&mut axml_buff);
+                parse_end_namespace(&mut axml_buff, &global_strings);
             },
             XmlTypes::RES_XML_START_ELEMENT_TYPE => {
-                parse_start_element(&mut axml_buff, &global_strings);
+                parse_start_element(&mut axml_buff, &global_strings, &namespace_prefixes);
             },
             XmlTypes::RES_XML_END_ELEMENT_TYPE => {
-                parse_end_element(&mut axml_buff);
+                parse_end_element(&mut axml_buff, &global_strings);
             },
             XmlTypes::RES_XML_CDATA_TYPE => panic!("TODO: RES_XML_CDATA_TYPE"),
             XmlTypes::RES_XML_LAST_CHUNK_TYPE => panic!("TODO: RES_XML_LAST_CHUNK_TYPE"),
