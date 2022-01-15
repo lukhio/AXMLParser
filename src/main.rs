@@ -1,6 +1,7 @@
 use std::{
     env,
     fs,
+    iter,
     process::exit,
     collections::HashMap,
 };
@@ -13,6 +14,11 @@ use byteorder::{
     LittleEndian,
     ReadBytesExt
 };
+use quick_xml::Writer;
+use quick_xml::events::{Event, BytesEnd, BytesStart};
+use quick_xml::events::attributes::Attribute;
+use quick_xml::Reader;
+use std::borrow::Cow;
 
 struct XmlTypes {}
 
@@ -487,7 +493,7 @@ fn parse_end_namespace(axml_buff: &mut Cursor<Vec<u8>>,
 
 fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>,
                        strings: &Vec::<String>,
-                       namespace_prefixes: &HashMap::<String, String>) {
+                       namespace_prefixes: &HashMap::<String, String>) -> Result<(String, Vec<(String, String)>), Error> {
     /* Go back 2 bytes, to account from the block type */
     let offset = axml_buff.position();
     axml_buff.set_position(offset - 2);
@@ -514,30 +520,31 @@ fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>,
 
     println!("attribute count: {:02X}", attribute_count);
 
+    let mut decoded_attrs = Vec::<(String, String)>::new();
     for _ in 0..attribute_count {
         let attr_namespace = axml_buff.read_u32::<LittleEndian>().unwrap();
         let attr_name = axml_buff.read_u32::<LittleEndian>().unwrap();
         let attr_raw_val = axml_buff.read_u32::<LittleEndian>().unwrap();
         let data_value_type = ResValue::from_buff(axml_buff).unwrap();
 
-        let mut decoded_attr = String::new();
+        let mut decoded_attr_key = String::new();
+        let mut decoded_attr_val = String::new();
 
         if attr_namespace != 0xffffffff {
             // TODO: cleanup this
             let ns_prefix = namespace_prefixes.get(strings.get(attr_namespace as usize).unwrap()).unwrap();
             println!("--- attr_namespace: {:?}", strings.get(attr_namespace as usize).unwrap());
             println!("--- prefix: {:?}", ns_prefix);
-            decoded_attr.push_str(ns_prefix);
-            decoded_attr.push(':');
+            decoded_attr_key.push_str(ns_prefix);
+            decoded_attr_key.push(':');
         } else {
             // TODO
         }
 
-        decoded_attr.push_str(strings.get(attr_name as usize).unwrap());
-        decoded_attr.push('=');
+        decoded_attr_key.push_str(strings.get(attr_name as usize).unwrap());
 
         if attr_raw_val != 0xffffffff {
-            decoded_attr.push_str(&format!("\"{}\"", strings.get(attr_raw_val as usize).unwrap()));
+            decoded_attr_val.push_str(&format!("{}", strings.get(attr_raw_val as usize).unwrap()));
         } else {
             match data_value_type.data_type {
                 DataValueType::TYPE_NULL => println!("TODO: DataValueType::TYPE_NULL"),
@@ -549,16 +556,16 @@ fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>,
                 DataValueType::TYPE_FRACTION => println!("TODO: DataValueType::TYPE_FRACTION"),
                 DataValueType::TYPE_DYNAMIC_REFERENCE => println!("TODO: DataValueType::TYPE_DYNAMIC_REFERENCE"),
                 DataValueType::TYPE_DYNAMIC_ATTRIBUTE => println!("TODO: DataValueType::TYPE_DYNAMIC_ATTRIBUTE"),
-                DataValueType::TYPE_INT_DEC => decoded_attr.push_str(&data_value_type.data.to_string()),
+                DataValueType::TYPE_INT_DEC => decoded_attr_val.push_str(&data_value_type.data.to_string()),
                 DataValueType::TYPE_INT_HEX => {
-                    decoded_attr.push_str("0x");
-                    decoded_attr.push_str(&format!("{:x}", &data_value_type.data).to_string());
+                    decoded_attr_val.push_str("0x");
+                    decoded_attr_val.push_str(&format!("{:x}", &data_value_type.data).to_string());
                 },
                 DataValueType::TYPE_INT_BOOLEAN => {
                     if data_value_type.data == 0 {
-                        decoded_attr.push_str("\"false\"");
+                        decoded_attr_val.push_str("false");
                     } else {
-                        decoded_attr.push_str("\"true\"");
+                        decoded_attr_val.push_str("true");
                     }
                 },
                 DataValueType::TYPE_INT_COLOR_ARGB8 => println!("TODO: DataValueType::TYPE_INT_COLOR_ARGB8"),
@@ -568,12 +575,14 @@ fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>,
                 _ => println!("DataValueType::TYPE_NULL"),
             }
         }
-        println!("===== {}", decoded_attr);
+        decoded_attrs.push((decoded_attr_key, decoded_attr_val));
     }
+
+    Ok((strings.get(name as usize).unwrap().to_string(), decoded_attrs))
 }
 
 fn parse_end_element(axml_buff: &mut Cursor<Vec<u8>>,
-                     strings: &Vec::<String>) {
+                     strings: &Vec::<String>) -> Result<String, Error> {
     /* Go back 2 bytes, to account from the block type */
     let offset = axml_buff.position();
     axml_buff.set_position(offset - 2);
@@ -590,6 +599,34 @@ fn parse_end_element(axml_buff: &mut Cursor<Vec<u8>>,
     println!("----- End element header -----");
     // println!("namespace: {:?}", strings.get(namespace as usize).unwrap());
     println!("name: {:?}", strings.get(name as usize).unwrap());
+
+    Ok(strings.get(name as usize).unwrap().to_string())
+}
+
+fn handle_event(writer: &mut Writer<Cursor<Vec<u8>>>,
+                element_name: String,
+                element_attrs: Vec<(String, String)>,
+                block_type: u16) {
+    match block_type {
+        XmlTypes::RES_XML_START_ELEMENT_TYPE => {
+            let mut elem = BytesStart::owned(element_name.as_bytes(), element_name.len());
+
+            for (attr_key, attr_val) in element_attrs {
+                let attr = Attribute {
+                    key: attr_key.as_bytes(),
+                    value: Cow::Borrowed(attr_val.as_bytes())
+                };
+                elem.push_attribute(attr);
+            }
+
+            assert!(writer.write_event(Event::Start(elem)).is_ok());
+
+        },
+        XmlTypes::RES_XML_END_ELEMENT_TYPE => {
+            assert!(writer.write_event(Event::End(BytesEnd::borrowed(element_name.as_bytes()))).is_ok());
+        },
+        _ => println!("{:02X}, other", block_type),
+    }
 }
 
 fn main() {
@@ -617,6 +654,9 @@ fn main() {
     let mut global_strings = Vec::new();
     let mut namespace_prefixes = HashMap::<String, String>::new();
 
+    /* Output stuff */
+    let mut writer = Writer::new(Cursor::new(Vec::new()));
+
     loop {
         let block_type = get_next_block_type(&mut axml_buff);
         let block_type = match block_type {
@@ -640,10 +680,12 @@ fn main() {
                 parse_end_namespace(&mut axml_buff, &global_strings);
             },
             XmlTypes::RES_XML_START_ELEMENT_TYPE => {
-                parse_start_element(&mut axml_buff, &global_strings, &namespace_prefixes);
+                let (element_name, attrs) = parse_start_element(&mut axml_buff, &global_strings, &namespace_prefixes).unwrap();
+                handle_event(&mut writer, element_name, attrs, XmlTypes::RES_XML_START_ELEMENT_TYPE);
             },
             XmlTypes::RES_XML_END_ELEMENT_TYPE => {
-                parse_end_element(&mut axml_buff, &global_strings);
+                let element_name = parse_end_element(&mut axml_buff, &global_strings).unwrap();
+                handle_event(&mut writer, element_name, Vec::new(), XmlTypes::RES_XML_END_ELEMENT_TYPE);
             },
             XmlTypes::RES_XML_CDATA_TYPE => panic!("TODO: RES_XML_CDATA_TYPE"),
             XmlTypes::RES_XML_LAST_CHUNK_TYPE => panic!("TODO: RES_XML_LAST_CHUNK_TYPE"),
@@ -665,6 +707,9 @@ fn main() {
 
     println!("==========");
     println!("Finished parsing file.");
+    let result = writer.into_inner().into_inner();
+    let str_result = String::from_utf8(result).unwrap();
+    println!("{}", str_result);
 }
 
 fn get_resource_string(mut id: u32) -> Result<String, Error> {
