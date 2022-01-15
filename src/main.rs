@@ -505,14 +505,6 @@ fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>,
     let class_index = axml_buff.read_u16::<LittleEndian>().unwrap();
     let style_index = axml_buff.read_u16::<LittleEndian>().unwrap();
 
-    println!("----- Start element header -----");
-    if namespace != 0xffffffff {
-        println!("namespace: {:?}", strings.get(namespace as usize).unwrap());
-    }
-    println!("name: {:?}", strings.get(name as usize).unwrap());
-
-    println!("attribute count: {:02X}", attribute_count);
-
     let mut decoded_attrs = Vec::<(String, String)>::new();
     for _ in 0..attribute_count {
         let attr_namespace = axml_buff.read_u32::<LittleEndian>().unwrap();
@@ -644,7 +636,6 @@ fn main() {
     }
 
     let axml_path = &args[1];
-    println!("[+] Parsing {}", axml_path);
 
     let mut raw_file = fs::File::open(axml_path).expect("Error: cannot open AXML file");
     let mut axml_vec_buff = Vec::new();
@@ -653,8 +644,6 @@ fn main() {
 
     let header = ChunkHeader::from_buff(&mut axml_buff, XmlTypes::RES_XML_TYPE)
                  .expect("Error: cannot parse AXML header");
-
-    header.print();
 
     /* Now parsing the rest of the file */
     let mut global_strings = Vec::new();
@@ -699,7 +688,6 @@ fn main() {
             XmlTypes::RES_XML_RESOURCE_MAP_TYPE => {
                 let resource_map = ResourceMap::from_buff(&mut axml_buff)
                                                 .expect("Error: cannot parse resource map");
-                resource_map.print();
             },
 
             XmlTypes::RES_TABLE_PACKAGE_TYPE => panic!("TODO: RES_TABLE_PACKAGE_TYPE"),
@@ -711,8 +699,6 @@ fn main() {
         }
     }
 
-    println!("==========");
-    println!("Finished parsing file.");
     let mut file = fs::File::create("decoded.xml").unwrap();
     let result = writer.into_inner().into_inner();
     let str_result = String::from_utf8(result).unwrap();
