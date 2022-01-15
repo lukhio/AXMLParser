@@ -1,3 +1,5 @@
+#![allow(non_snake_case, unused_variables, dead_code)]
+
 use std::{
     env,
     fs,
@@ -25,7 +27,6 @@ use zip;
 struct XmlTypes {}
 
 /* Type identifiers for chunks. Only includes the ones related to XML */
-#[allow(dead_code)]
 impl XmlTypes {
     pub const RES_NULL_TYPE: u16                = 0x0000;
     pub const RES_STRING_POOL_TYPE: u16         = 0x0001;
@@ -309,7 +310,6 @@ impl ResourceMap {
 
 struct DataValueType {}
 
-#[allow(dead_code)]
 impl DataValueType {
     /* The 'data' is either 0 or 1, specifying this resource is either undefined or empty,
      * respectively */
