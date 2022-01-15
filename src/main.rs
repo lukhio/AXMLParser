@@ -20,6 +20,7 @@ use quick_xml::events::{Event, BytesEnd, BytesStart};
 use quick_xml::events::attributes::Attribute;
 use quick_xml::Reader;
 use std::borrow::Cow;
+use zip;
 
 struct XmlTypes {}
 
@@ -631,17 +632,33 @@ fn main() {
     /* Check CLI arguments */
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
-        println!("Usage: ./{:} [AXML]", args[0]);
+        println!("Usage: ./{:} [AXML|APK]", args[0]);
         exit(22);
     }
 
-    let axml_path = &args[1];
+    let fpath = &args[1];
 
-    let mut raw_file = fs::File::open(axml_path).expect("Error: cannot open AXML file");
+    /* The argument can be either an binary XML file, or an APK.
+     * If we are dealing with an APK, we must first extract the binary XML from it */
+    let mut raw_file;
     let mut axml_vec_buff = Vec::new();
-    raw_file.read_to_end(&mut axml_vec_buff).expect("Error: cannot read AXML file");
-    let mut axml_buff = Cursor::new(axml_vec_buff);
+    if fpath.ends_with(".xml") {
+        raw_file = fs::File::open(fpath).expect("Error: cannot open AXML file");
+        raw_file.read_to_end(&mut axml_vec_buff).expect("Error: cannot read AXML file");
+    } else {
+        let zipfile = std::fs::File::open(&fpath).unwrap();
+        let mut archive = zip::ZipArchive::new(zipfile).unwrap();
+        let mut file = match archive.by_name("AndroidManifest.xml") {
+            Ok(file) => file,
+            Err(..) => {
+                panic!("Error: cannot find AndroidManifest.xml in APK");
+            }
+        };
 
+        file.read_to_end(&mut axml_vec_buff).expect("Error: cannot read AXML file");
+    }
+
+    let mut axml_buff = Cursor::new(axml_vec_buff);
     let header = ChunkHeader::from_buff(&mut axml_buff, XmlTypes::RES_XML_TYPE)
                  .expect("Error: cannot parse AXML header");
 
