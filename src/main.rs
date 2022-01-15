@@ -538,7 +538,10 @@ fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>,
         } else {
             match data_value_type.data_type {
                 DataValueType::TYPE_NULL => println!("TODO: DataValueType::TYPE_NULL"),
-                DataValueType::TYPE_REFERENCE => println!("TODO: DataValueType::TYPE_REFERENCE"),
+                DataValueType::TYPE_REFERENCE => {
+                    decoded_attr_val.push_str("type1/");
+                    decoded_attr_val.push_str(&data_value_type.data.to_string());
+                },
                 DataValueType::TYPE_ATTRIBUTE => println!("TODO: DataValueType::TYPE_ATTRIBUTE"),
                 DataValueType::TYPE_STRING => println!("TODO: DataValueType::TYPE_STRING"),
                 DataValueType::TYPE_FLOAT => println!("TODO: DataValueType::TYPE_FLOAT"),
