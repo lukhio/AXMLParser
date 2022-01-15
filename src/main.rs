@@ -7,6 +7,7 @@ use std::{
 };
 use std::io::{
     Read,
+    Write,
     Error,
     Cursor,
 };
@@ -724,9 +725,10 @@ fn main() {
 
     println!("==========");
     println!("Finished parsing file.");
+    let mut file = fs::File::create("decoded.xml").unwrap();
     let result = writer.into_inner().into_inner();
     let str_result = String::from_utf8(result).unwrap();
-    println!("{}", str_result);
+    file.write_all(str_result.as_bytes()).unwrap();
 }
 
 fn get_resource_string(mut id: u32) -> Result<String, Error> {
