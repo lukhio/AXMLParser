@@ -3,7 +3,6 @@
 use std::{
     env,
     fs,
-    iter,
     process::exit,
     collections::HashMap,
 };
@@ -20,7 +19,6 @@ use byteorder::{
 use quick_xml::Writer;
 use quick_xml::events::{Event, BytesEnd, BytesStart};
 use quick_xml::events::attributes::Attribute;
-use quick_xml::Reader;
 use std::borrow::Cow;
 use zip;
 
