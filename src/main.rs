@@ -606,10 +606,27 @@ fn parse_end_element(axml_buff: &mut Cursor<Vec<u8>>,
 fn handle_event(writer: &mut Writer<Cursor<Vec<u8>>>,
                 element_name: String,
                 element_attrs: Vec<(String, String)>,
+                namespace_prefixes: &HashMap::<String, String>,
                 block_type: u16) {
     match block_type {
         XmlTypes::RES_XML_START_ELEMENT_TYPE => {
             let mut elem = BytesStart::owned(element_name.as_bytes(), element_name.len());
+
+            if element_name == "manifest" {
+                for (k, v) in namespace_prefixes.iter() {
+                    if v == "android" {
+                        let mut key = String::new();
+                        key.push_str("xmlns:");
+                        key.push_str(v);
+                        let attr = Attribute {
+                            key: key.as_bytes(),
+                            value: Cow::Borrowed(k.as_bytes())
+                        };
+                        elem.push_attribute(attr);
+                        break;
+                    }
+                }
+            }
 
             for (attr_key, attr_val) in element_attrs {
                 let attr = Attribute {
@@ -681,11 +698,11 @@ fn main() {
             },
             XmlTypes::RES_XML_START_ELEMENT_TYPE => {
                 let (element_name, attrs) = parse_start_element(&mut axml_buff, &global_strings, &namespace_prefixes).unwrap();
-                handle_event(&mut writer, element_name, attrs, XmlTypes::RES_XML_START_ELEMENT_TYPE);
+                handle_event(&mut writer, element_name, attrs, &namespace_prefixes, XmlTypes::RES_XML_START_ELEMENT_TYPE);
             },
             XmlTypes::RES_XML_END_ELEMENT_TYPE => {
                 let element_name = parse_end_element(&mut axml_buff, &global_strings).unwrap();
-                handle_event(&mut writer, element_name, Vec::new(), XmlTypes::RES_XML_END_ELEMENT_TYPE);
+                handle_event(&mut writer, element_name, Vec::new(), &namespace_prefixes, XmlTypes::RES_XML_END_ELEMENT_TYPE);
             },
             XmlTypes::RES_XML_CDATA_TYPE => panic!("TODO: RES_XML_CDATA_TYPE"),
             XmlTypes::RES_XML_LAST_CHUNK_TYPE => panic!("TODO: RES_XML_LAST_CHUNK_TYPE"),
