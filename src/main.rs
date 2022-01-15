@@ -466,10 +466,6 @@ fn parse_start_namespace(axml_buff: &mut Cursor<Vec<u8>>,
     let prefix_str = strings.get(prefix as usize).unwrap();
     let uri_str = strings.get(uri as usize).unwrap();
     namespaces.insert(uri_str.to_string(), prefix_str.to_string());
-
-    println!("----- Start namespace header -----");
-    println!("prefix: {:?}", strings.get(prefix as usize).unwrap());
-    println!("uri: {:?}", strings.get(uri as usize).unwrap());
 }
 
 fn parse_end_namespace(axml_buff: &mut Cursor<Vec<u8>>,
@@ -486,10 +482,6 @@ fn parse_end_namespace(axml_buff: &mut Cursor<Vec<u8>>,
     let comment = axml_buff.read_u32::<LittleEndian>().unwrap();
     let prefix = axml_buff.read_u32::<LittleEndian>().unwrap();
     let uri = axml_buff.read_u32::<LittleEndian>().unwrap();
-
-    println!("----- End namespace header -----");
-    println!("prefix: {:?}", strings.get(prefix as usize).unwrap());
-    println!("uri: {:?}", strings.get(uri as usize).unwrap());
 }
 
 fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>,
@@ -532,10 +524,7 @@ fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>,
         let mut decoded_attr_val = String::new();
 
         if attr_namespace != 0xffffffff {
-            // TODO: cleanup this
             let ns_prefix = namespace_prefixes.get(strings.get(attr_namespace as usize).unwrap()).unwrap();
-            println!("--- attr_namespace: {:?}", strings.get(attr_namespace as usize).unwrap());
-            println!("--- prefix: {:?}", ns_prefix);
             decoded_attr_key.push_str(ns_prefix);
             decoded_attr_key.push(':');
         } else {
@@ -596,10 +585,6 @@ fn parse_end_element(axml_buff: &mut Cursor<Vec<u8>>,
     let comment = axml_buff.read_u32::<LittleEndian>().unwrap();
     let namespace = axml_buff.read_u32::<LittleEndian>().unwrap();
     let name = axml_buff.read_u32::<LittleEndian>().unwrap();
-
-    println!("----- End element header -----");
-    // println!("namespace: {:?}", strings.get(namespace as usize).unwrap());
-    println!("name: {:?}", strings.get(name as usize).unwrap());
 
     Ok(strings.get(name as usize).unwrap().to_string())
 }
