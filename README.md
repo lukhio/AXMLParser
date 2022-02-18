@@ -14,6 +14,7 @@ file, in which case the manifest will first be extracted from the APK.
 
 ### To do
 
-- print decoded XML to `stdout` by default, or to a file specified by the user
 - when extracting from an APK, also decode other resources (e.g.,
-  `strings.xml`) which would allow us to resolve some static references
+  `strings.xml`) which would allow us to resolve some static references.
+- when printing decoded XML to `stdout`, pretty-print it instead of just
+  dumping it on one line.
