@@ -629,7 +629,7 @@ fn handle_event(writer: &mut Writer<Cursor<Vec<u8>>>,
 fn main() {
     /* Check CLI arguments */
     let args: Vec<String> = env::args().collect();
-    if args.len() != 2 {
+    if args.len() < 2 || args.len() > 3 {
         println!("Usage: ./{:} [AXML|APK]", args[0]);
         exit(22);
     }
@@ -714,10 +714,15 @@ fn main() {
         }
     }
 
-    let mut file = fs::File::create("decoded.xml").unwrap();
     let result = writer.into_inner().into_inner();
     let str_result = String::from_utf8(result).unwrap();
-    file.write_all(str_result.as_bytes()).unwrap();
+
+    if args.len() == 3 {
+        let mut file = fs::File::create(&args[2]).unwrap();
+        file.write_all(str_result.as_bytes()).unwrap();
+    } else {
+        println!("{}", str_result);
+    }
 }
 
 fn get_resource_string(mut id: u32) -> Result<String, Error> {
