@@ -54,7 +54,7 @@ impl DataValueType {
     pub const TYPE_LAST_INT: u8	            = 0x1f;
 
     pub fn from_val(value: u8) -> u8 {
-        return match value {
+        match value {
             0x00 => DataValueType::TYPE_NULL,
             0x01 => DataValueType::TYPE_REFERENCE,
             0x02 => DataValueType::TYPE_ATTRIBUTE,
