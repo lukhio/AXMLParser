@@ -20,7 +20,6 @@ use quick_xml::Writer;
 use quick_xml::events::{Event, BytesEnd, BytesStart};
 use quick_xml::events::attributes::Attribute;
 use std::borrow::Cow;
-use zip;
 
 mod xml_types;
 mod chunk_header;
