@@ -66,7 +66,7 @@ fn get_next_block_type(axml_buff: &mut Cursor<Vec<u8>>) -> Result<u16, Error> {
 }
 
 fn parse_start_namespace(axml_buff: &mut Cursor<Vec<u8>>,
-                         strings: &Vec::<String>,
+                         strings: &[String],
                          namespaces: &mut HashMap::<String, String>) {
     /* Go back 2 bytes, to account from the block type */
     let offset = axml_buff.position();
@@ -87,7 +87,7 @@ fn parse_start_namespace(axml_buff: &mut Cursor<Vec<u8>>,
 }
 
 fn parse_end_namespace(axml_buff: &mut Cursor<Vec<u8>>,
-                       strings: &Vec::<String>) {
+                       strings: &[String]) {
     /* Go back 2 bytes, to account from the block type */
     let offset = axml_buff.position();
     axml_buff.set_position(offset - 2);
@@ -103,7 +103,7 @@ fn parse_end_namespace(axml_buff: &mut Cursor<Vec<u8>>,
 }
 
 fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>,
-                       strings: &Vec::<String>,
+                       strings: &[String],
                        namespace_prefixes: &HashMap::<String, String>) -> Result<(String, Vec<(String, String)>), Error> {
     /* Go back 2 bytes, to account from the block type */
     let offset = axml_buff.position();
@@ -185,7 +185,7 @@ fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>,
 }
 
 fn parse_end_element(axml_buff: &mut Cursor<Vec<u8>>,
-                     strings: &Vec::<String>) -> Result<String, Error> {
+                     strings: &[String]) -> Result<String, Error> {
     /* Go back 2 bytes, to account from the block type */
     let offset = axml_buff.position();
     axml_buff.set_position(offset - 2);
