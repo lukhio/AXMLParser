@@ -263,7 +263,7 @@ fn main() {
         raw_file = fs::File::open(fpath).expect("Error: cannot open AXML file");
         raw_file.read_to_end(&mut axml_vec_buff).expect("Error: cannot read AXML file");
     } else {
-        let zipfile = std::fs::File::open(&fpath).unwrap();
+        let zipfile = std::fs::File::open(fpath).unwrap();
         let mut archive = zip::ZipArchive::new(zipfile).unwrap();
         let mut file = match archive.by_name("AndroidManifest.xml") {
             Ok(file) => file,
