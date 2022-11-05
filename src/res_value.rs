@@ -38,10 +38,10 @@ impl ResValue {
         let data = axml_buff.read_u32::<LittleEndian>().unwrap();
 
         Ok(ResValue {
-            size: size,
-            res0: res0,
-            data_type: data_type,
-            data: data
+            size,
+            res0,
+            data_type,
+            data
         })
     }
 }

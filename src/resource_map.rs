@@ -35,16 +35,16 @@ impl ResourceMap {
                      .expect("Error: cannot get chunk header from string pool");
 
         /* Get resources IDs */
-        let mut resources = Vec::new();
+        let mut resources_id = Vec::new();
         let nb_resources = (header.size / 4) - 2;
         for _ in 0..nb_resources {
             let id = axml_buff.read_u32::<LittleEndian>().unwrap();
-            resources.push(id);
+            resources_id.push(id);
         }
 
         Ok(ResourceMap {
-            header: header,
-            resources_id: resources,
+            header,
+            resources_id
         })
     }
 

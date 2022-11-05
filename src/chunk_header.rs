@@ -43,27 +43,27 @@ impl ChunkHeader {
         }
 
         /* Get chunk header size and total size */
-        let chunk_header_size = axml_buff.read_u16::<LittleEndian>().unwrap();
-        let chunk_total_size = axml_buff.read_u32::<LittleEndian>().unwrap();
+        let header_size = axml_buff.read_u16::<LittleEndian>().unwrap();
+        let size = axml_buff.read_u32::<LittleEndian>().unwrap();
 
         /* Exhaustive checks on the announced sizes */
-        if chunk_header_size < minimum_size {
+        if header_size < minimum_size {
             panic!("Error: parsed header size is smaller than the minimum");
         }
 
-        if chunk_total_size < minimum_size.into() {
+        if size < minimum_size.into() {
             panic!("Error: parsed total size is smaller than the minimum");
         }
 
-        if chunk_total_size < chunk_header_size.into() {
+        if size < header_size.into() {
             panic!("Error: parsed total size if smaller than parsed header size");
         }
 
         /* Build and return the object */
         Ok(ChunkHeader {
-            chunk_type: chunk_type,
-            header_size: chunk_header_size,
-            size: chunk_total_size,
+            chunk_type,
+            header_size,
+            size,
         })
     }
 

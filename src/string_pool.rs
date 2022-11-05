@@ -124,19 +124,20 @@ impl StringPool {
                 global_strings.push(decoded_string);
             }
         }
+        let strings = global_strings.to_vec();
 
         /* Build and return the object */
         Ok(StringPool {
-            header: header,
-            string_count: string_count,
-            style_count: style_count,
-            flags: flags,
-            is_utf8: is_utf8,
-            strings_start: strings_start,
-            styles_start: styles_start,
-            strings_offsets: strings_offsets,
-            styles_offsets: styles_offsets,
-            strings: global_strings.to_vec(),
+            header,
+            string_count,
+            style_count,
+            flags,
+            is_utf8,
+            strings_start,
+            styles_start,
+            strings_offsets,
+            styles_offsets,
+            strings
         })
     }
 
