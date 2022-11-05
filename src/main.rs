@@ -144,7 +144,7 @@ fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>,
         decoded_attr_key.push_str(strings.get(attr_name as usize).unwrap());
 
         if attr_raw_val != 0xffffffff {
-            decoded_attr_val.push_str(&format!("{}", strings.get(attr_raw_val as usize).unwrap()));
+            decoded_attr_val.push_str(&strings.get(attr_raw_val as usize).unwrap().to_string());
         } else {
             match data_value_type.data_type {
                 DataValueType::TYPE_NULL => println!("TODO: DataValueType::TYPE_NULL"),
