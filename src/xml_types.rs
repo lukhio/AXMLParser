@@ -104,7 +104,7 @@ impl fmt::UpperHex for XmlTypes {
             XmlTypes::ResTableTypeType => write!(f, "{:X}", 0x0201),
             XmlTypes::ResTableTypeSpecType => write!(f, "{:X}", 0x0202),
             XmlTypes::ResTableLibraryType => write!(f, "{:X}", 0x0203),
-        };
+        }?;
         Ok(())
     }
 }
