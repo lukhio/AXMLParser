@@ -21,7 +21,7 @@ pub struct ResValue {
     /* Always set to 0 */
     pub res0: u8,
 
-    pub data_type: u8,
+    pub data_type: DataValueType,
     pub data: u32,
 }
 
@@ -34,7 +34,8 @@ impl ResValue {
             panic!("res0 is not 0");
         }
 
-        let data_type = DataValueType::from_val(axml_buff.read_u8().unwrap());
+        let data_type = DataValueType::from_val(axml_buff.read_u8().unwrap())
+                        .expect("Error: cannot decode data value type");
         let data = axml_buff.read_u32::<LittleEndian>().unwrap();
 
         Ok(ResValue {

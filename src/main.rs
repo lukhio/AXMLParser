@@ -118,35 +118,35 @@ fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>,
             decoded_attr_val.push_str(&strings.get(attr_raw_val as usize).unwrap().to_string());
         } else {
             match data_value_type.data_type {
-                DataValueType::TYPE_NULL => println!("TODO: DataValueType::TYPE_NULL"),
-                DataValueType::TYPE_REFERENCE => {
+                DataValueType::TypeNull => println!("TODO: DataValueType::TypeNull"),
+                DataValueType::TypeReference => {
                     decoded_attr_val.push_str("type1/");
                     decoded_attr_val.push_str(&data_value_type.data.to_string());
                 },
-                DataValueType::TYPE_ATTRIBUTE => println!("TODO: DataValueType::TYPE_ATTRIBUTE"),
-                DataValueType::TYPE_STRING => println!("TODO: DataValueType::TYPE_STRING"),
-                DataValueType::TYPE_FLOAT => println!("TODO: DataValueType::TYPE_FLOAT"),
-                DataValueType::TYPE_DIMENSION => println!("TODO: DataValueType::TYPE_DIMENSION"),
-                DataValueType::TYPE_FRACTION => println!("TODO: DataValueType::TYPE_FRACTION"),
-                DataValueType::TYPE_DYNAMIC_REFERENCE => println!("TODO: DataValueType::TYPE_DYNAMIC_REFERENCE"),
-                DataValueType::TYPE_DYNAMIC_ATTRIBUTE => println!("TODO: DataValueType::TYPE_DYNAMIC_ATTRIBUTE"),
-                DataValueType::TYPE_INT_DEC => decoded_attr_val.push_str(&data_value_type.data.to_string()),
-                DataValueType::TYPE_INT_HEX => {
+                DataValueType::TypeAttribute => println!("TODO: DataValueType::TypeAttribute"),
+                DataValueType::TypeString => println!("TODO: DataValueType::TypeString"),
+                DataValueType::TypeFloat => println!("TODO: DataValueType::TypeFloat"),
+                DataValueType::TypeDimension => println!("TODO: DataValueType::TypeDimension"),
+                DataValueType::TypeFraction => println!("TODO: DataValueType::TypeFraction"),
+                DataValueType::TypeDynamicReference => println!("TODO: DataValueType::TypeDynamicReference"),
+                DataValueType::TypeDynamicAttribute => println!("TODO: DataValueType::TypeDynamicAttribute"),
+                DataValueType::TypeIntDec => decoded_attr_val.push_str(&data_value_type.data.to_string()),
+                DataValueType::TypeIntHex => {
                     decoded_attr_val.push_str("0x");
                     decoded_attr_val.push_str(&format!("{:x}", &data_value_type.data).to_string());
                 },
-                DataValueType::TYPE_INT_BOOLEAN => {
+                DataValueType::TypeIntBoolean => {
                     if data_value_type.data == 0 {
                         decoded_attr_val.push_str("false");
                     } else {
                         decoded_attr_val.push_str("true");
                     }
                 },
-                DataValueType::TYPE_INT_COLOR_ARGB8 => println!("TODO: DataValueType::TYPE_INT_COLOR_ARGB8"),
-                DataValueType::TYPE_INT_COLOR_RGB8 => println!("TODO: DataValueType::TYPE_INT_COLOR_RGB8"),
-                DataValueType::TYPE_INT_COLOR_ARGB4 => println!("TODO: DataValueType::TYPE_INT_COLOR_ARGB4"),
-                DataValueType::TYPE_INT_COLOR_RGB4 => println!("TODO: DataValueType::TYPE_INT_COLOR_RGB4"),
-                _ => println!("DataValueType::TYPE_NULL"),
+                DataValueType::TypeIntColorArgb8 => println!("TODO: DataValueType::TypeIntColorArgb8"),
+                DataValueType::TypeIntColorRgb8 => println!("TODO: DataValueType::TypeIntColorRgb8"),
+                DataValueType::TypeIntColorArgb4 => println!("TODO: DataValueType::TypeIntColorArgb4"),
+                DataValueType::TypeIntColorRgb4 => println!("TODO: DataValueType::TypeIntColorRgb4"),
+                _ => println!("DataValueType::TypeNull"),
             }
         }
         decoded_attrs.push((decoded_attr_key, decoded_attr_val));
