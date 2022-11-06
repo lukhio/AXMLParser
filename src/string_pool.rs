@@ -73,8 +73,9 @@ impl StringPool {
         axml_buff.set_position(initial_offset - 2);
 
         /* Parse chunk header */
-        let header = ChunkHeader::from_buff(axml_buff, XmlTypes::RES_STRING_POOL_TYPE)
+        let header = ChunkHeader::from_buff(axml_buff, XmlTypes::ResStringPoolType)
                      .expect("Error: cannot get chunk header from string pool");
+        // header.print();
 
         /* Get remaining members */
         let string_count = axml_buff.read_u32::<LittleEndian>().unwrap();

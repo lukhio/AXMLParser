@@ -8,12 +8,13 @@ use byteorder::{
     LittleEndian,
     ReadBytesExt,
 };
+use crate::xml_types::XmlTypes;
 
 /* Header that appears at the beginning of every chunk */
 pub struct ChunkHeader {
     /* Type identifier for this chunk.
      * The meaning of this value depends on the containing chunk. */
-    pub chunk_type: u16,
+    pub chunk_type: XmlTypes,
 
     /* Size of the chunk header (in bytes).
      * Adding this value to the address of the chunk allows you to find
@@ -30,7 +31,7 @@ pub struct ChunkHeader {
 
 impl ChunkHeader {
 
-    pub fn from_buff(axml_buff: &mut Cursor<Vec<u8>>, expected_type: u16) -> Result<Self, Error> {
+    pub fn from_buff(axml_buff: &mut Cursor<Vec<u8>>, expected_type: XmlTypes) -> Result<Self, Error> {
         /* Minimum size, for a chunk with no data */
         let minimum_size = 8;
 

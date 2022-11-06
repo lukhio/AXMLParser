@@ -73,7 +73,7 @@ fn parse_start_namespace(axml_buff: &mut Cursor<Vec<u8>>,
     axml_buff.set_position(offset - 2);
 
     /* Parse chunk header */
-    let header = ChunkHeader::from_buff(axml_buff, XmlTypes::RES_XML_START_NAMESPACE_TYPE)
+    let header = ChunkHeader::from_buff(axml_buff, XmlTypes::ResXmlStartNamespaceType)
                  .expect("Error: cannot get header from start namespace chunk");
 
     let line_number = axml_buff.read_u32::<LittleEndian>().unwrap();
@@ -93,7 +93,7 @@ fn parse_end_namespace(axml_buff: &mut Cursor<Vec<u8>>,
     axml_buff.set_position(offset - 2);
 
     /* Parse chunk header */
-    let header = ChunkHeader::from_buff(axml_buff, XmlTypes::RES_XML_END_NAMESPACE_TYPE)
+    let header = ChunkHeader::from_buff(axml_buff, XmlTypes::ResXmlEndNamespaceType)
                  .expect("Error: cannot get header from start namespace chunk");
 
     let line_number = axml_buff.read_u32::<LittleEndian>().unwrap();
@@ -110,7 +110,7 @@ fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>,
     axml_buff.set_position(offset - 2);
 
     /* Parse chunk header */
-    let header = ChunkHeader::from_buff(axml_buff, XmlTypes::RES_XML_START_ELEMENT_TYPE)
+    let header = ChunkHeader::from_buff(axml_buff, XmlTypes::ResXmlStartElementType)
                  .expect("Error: cannot get header from start namespace chunk");
 
     let line_number = axml_buff.read_u32::<LittleEndian>().unwrap();
@@ -191,7 +191,7 @@ fn parse_end_element(axml_buff: &mut Cursor<Vec<u8>>,
     axml_buff.set_position(offset - 2);
 
     /* Parse chunk header */
-    let header = ChunkHeader::from_buff(axml_buff, XmlTypes::RES_XML_END_ELEMENT_TYPE)
+    let header = ChunkHeader::from_buff(axml_buff, XmlTypes::ResXmlEndElementType)
                  .expect("Error: cannot get header from start namespace chunk");
 
     let line_number = axml_buff.read_u32::<LittleEndian>().unwrap();
@@ -206,9 +206,9 @@ fn handle_event(writer: &mut Writer<Cursor<Vec<u8>>>,
                 element_name: String,
                 element_attrs: Vec<(String, String)>,
                 namespace_prefixes: &HashMap::<String, String>,
-                block_type: u16) {
+                block_type: XmlTypes) {
     match block_type {
-        XmlTypes::RES_XML_START_ELEMENT_TYPE => {
+        XmlTypes::ResXmlStartElementType => {
             let mut elem = BytesStart::owned(element_name.as_bytes(), element_name.len());
 
             if element_name == "manifest" {
@@ -238,7 +238,7 @@ fn handle_event(writer: &mut Writer<Cursor<Vec<u8>>>,
             assert!(writer.write_event(Event::Start(elem)).is_ok());
 
         },
-        XmlTypes::RES_XML_END_ELEMENT_TYPE => {
+        XmlTypes::ResXmlEndElementType => {
             assert!(writer.write_event(Event::End(BytesEnd::borrowed(element_name.as_bytes()))).is_ok());
         },
         _ => println!("{:02X}, other", block_type),
@@ -276,7 +276,10 @@ fn main() {
     }
 
     let mut axml_buff = Cursor::new(axml_vec_buff);
-    let header = ChunkHeader::from_buff(&mut axml_buff, XmlTypes::RES_XML_TYPE)
+    /* TODO: the expected type is RES_XML_TYPE for manifest files, but RES_TABLE_TYPE for arsc
+     * files. We can probably use the first few bytes to detect which kind of files we are dealing
+     * with beforehand */
+    let header = ChunkHeader::from_buff(&mut axml_buff, XmlTypes::ResXmlType)
                  .expect("Error: cannot parse AXML header");
 
     /* Now parsing the rest of the file */
@@ -293,41 +296,47 @@ fn main() {
             Err(e) => break,
         };
 
+        println!("BLOCK TYPE: {:#02X}", block_type);
         match block_type {
-            XmlTypes::RES_NULL_TYPE => continue,
-            XmlTypes::RES_STRING_POOL_TYPE => {
+            XmlTypes::ResNullType => continue,
+            XmlTypes::ResStringPoolType => {
                 StringPool::from_buff(&mut axml_buff, &mut global_strings)
                            .expect("Error: cannot parse string pool header");
             },
-            XmlTypes::RES_TABLE_TYPE => panic!("TODO: RES_TABLE_TYPE"),
-            XmlTypes::RES_XML_TYPE => panic!("TODO: RES_XML_TYPE"),
+            XmlTypes::ResTableType => {
+                ResTable::parse(&mut axml_buff); // .expect("Error: cannot parse resource table");
+                // ###############################
+                panic!("STOP")
+                // ###############################
+            },
+            XmlTypes::ResXmlType => panic!("TODO: RES_XML_TYPE"),
 
-            XmlTypes::RES_XML_START_NAMESPACE_TYPE => {
+            XmlTypes::ResXmlStartNamespaceType => {
                 parse_start_namespace(&mut axml_buff, &global_strings, &mut namespace_prefixes);
             },
-            XmlTypes::RES_XML_END_NAMESPACE_TYPE => {
+            XmlTypes::ResXmlEndNamespaceType => {
                 parse_end_namespace(&mut axml_buff, &global_strings);
             },
-            XmlTypes::RES_XML_START_ELEMENT_TYPE => {
+            XmlTypes::ResXmlStartElementType => {
                 let (element_name, attrs) = parse_start_element(&mut axml_buff, &global_strings, &namespace_prefixes).unwrap();
-                handle_event(&mut writer, element_name, attrs, &namespace_prefixes, XmlTypes::RES_XML_START_ELEMENT_TYPE);
+                handle_event(&mut writer, element_name, attrs, &namespace_prefixes, XmlTypes::ResXmlStartElementType);
             },
-            XmlTypes::RES_XML_END_ELEMENT_TYPE => {
+            XmlTypes::ResXmlEndElementType => {
                 let element_name = parse_end_element(&mut axml_buff, &global_strings).unwrap();
-                handle_event(&mut writer, element_name, Vec::new(), &namespace_prefixes, XmlTypes::RES_XML_END_ELEMENT_TYPE);
+                handle_event(&mut writer, element_name, Vec::new(), &namespace_prefixes, XmlTypes::ResXmlEndElementType);
             },
-            XmlTypes::RES_XML_CDATA_TYPE => panic!("TODO: RES_XML_CDATA_TYPE"),
-            XmlTypes::RES_XML_LAST_CHUNK_TYPE => panic!("TODO: RES_XML_LAST_CHUNK_TYPE"),
+            XmlTypes::ResXmlCDataType => panic!("TODO: RES_XML_CDATA_TYPE"),
+            XmlTypes::ResXmlLastChunkType => panic!("TODO: RES_XML_LAST_CHUNK_TYPE"),
 
-            XmlTypes::RES_XML_RESOURCE_MAP_TYPE => {
+            XmlTypes::ResXmlResourceMapType => {
                 let resource_map = ResourceMap::from_buff(&mut axml_buff)
                                                 .expect("Error: cannot parse resource map");
             },
 
-            XmlTypes::RES_TABLE_PACKAGE_TYPE => panic!("TODO: RES_TABLE_PACKAGE_TYPE"),
-            XmlTypes::RES_TABLE_TYPE_TYPE => panic!("TODO: RES_TABLE_TYPE_TYPE"),
-            XmlTypes::RES_TABLE_TYPE_SPEC_TYPE => panic!("TODO: RES_TABLE_TYPE_SPEC_TYPE"),
-            XmlTypes::RES_TABLE_LIBRARY_TYPE => panic!("TODO: RES_TABLE_LIBRARY_TYPE"),
+            XmlTypes::ResTablePackageType => panic!("TODO: RES_TABLE_PACKAGE_TYPE"),
+            XmlTypes::ResTableTypeType => panic!("TODO: RES_TABLE_TYPE_TYPE"),
+            XmlTypes::ResTableTypeSpecType => panic!("TODO: RES_TABLE_TYPE_SPEC_TYPE"),
+            XmlTypes::ResTableLibraryType => panic!("TODO: RES_TABLE_LIBRARY_TYPE"),
 
             _ => println!("{:02X}, other", block_type),
         }

@@ -1,30 +1,62 @@
 #![allow(dead_code)]
 
-pub struct XmlTypes {}
+use std::fmt;
 
 /* Type identifiers for chunks. Only includes the ones related to XML */
-impl XmlTypes {
-    pub const RES_NULL_TYPE: u16                = 0x0000;
-    pub const RES_STRING_POOL_TYPE: u16         = 0x0001;
-    pub const RES_TABLE_TYPE: u16               = 0x0002;
-    pub const RES_XML_TYPE: u16                 = 0x0003;
+#[derive(PartialEq)]
+pub enum XmlTypes {
+    ResNullType,
+    ResStringPoolType,
+    ResTableType,
+    ResXmlType,
 
-    /* Chunk types in RES_XML_TYPE */
-    pub const RES_XML_FIRST_CHUNK_TYPE: u16     = 0x0100;
-    pub const RES_XML_START_NAMESPACE_TYPE: u16 = 0x0100;
-    pub const RES_XML_END_NAMESPACE_TYPE: u16   = 0x0101;
-    pub const RES_XML_START_ELEMENT_TYPE: u16   = 0x0102;
-    pub const RES_XML_END_ELEMENT_TYPE: u16     = 0x0103;
-    pub const RES_XML_CDATA_TYPE: u16           = 0x0104;
-    pub const RES_XML_LAST_CHUNK_TYPE: u16      = 0x017f;
+    /* Chunk types in RES_XML_Type */
+    // TODO: for some reason this chunk has the same value has ResXmlStartNamespaceType which is
+    // annoying. Need to figure out a way to deal with this. In the meantime, ignore it.
+    // ResXmlFirstChunkType,
+    ResXmlStartNamespaceType,
+    ResXmlEndNamespaceType,
+    ResXmlStartElementType,
+    ResXmlEndElementType,
+    ResXmlCDataType,
+    ResXmlLastChunkType,
 
     /* This contains a uint32_t array mapping strings in the string
      * pool back to resource identifiers.  It is optional. */
-    pub const RES_XML_RESOURCE_MAP_TYPE: u16    = 0x0180;
+    ResXmlResourceMapType,
 
-    /* Chunk types in RES_TABLE_TYPE */
-    pub const RES_TABLE_PACKAGE_TYPE: u16       = 0x0200;
-    pub const RES_TABLE_TYPE_TYPE: u16          = 0x0201;
-    pub const RES_TABLE_TYPE_SPEC_TYPE: u16     = 0x0202;
-    pub const RES_TABLE_LIBRARY_TYPE: u16       = 0x0203;
+    /* Chunk types in RES_TABLE_Type */
+    ResTablePackageType,
+    ResTableTypeType,
+    ResTableTypeSpecType,
+    ResTableLibraryType,
+}
+
+/* Implementation of the UpperHex trait for XmlTypes */
+impl fmt::UpperHex for XmlTypes {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            XmlTypes::ResNullType => write!(f, "{:X}", 0x0000),
+            XmlTypes::ResStringPoolType => write!(f, "{:X}", 0x0001),
+            XmlTypes::ResTableType => write!(f, "{:X}", 0x0002),
+            XmlTypes::ResXmlType => write!(f, "{:X}", 0x0003),
+
+            // TODO: see comment above.
+            // XmlTypes::ResXmlFirstChunkType => write!(f, "{:X}", 0x0100),
+            XmlTypes::ResXmlStartNamespaceType => write!(f, "{:X}", 0x0100),
+            XmlTypes::ResXmlEndNamespaceType => write!(f, "{:X}", 0x0101),
+            XmlTypes::ResXmlStartElementType => write!(f, "{:X}", 0x0102),
+            XmlTypes::ResXmlEndElementType => write!(f, "{:X}", 0x0103),
+            XmlTypes::ResXmlCDataType => write!(f, "{:X}", 0x0104),
+            XmlTypes::ResXmlLastChunkType => write!(f, "{:X}", 0x017f),
+
+            XmlTypes::ResXmlResourceMapType => write!(f, "{:X}", 0x0180),
+
+            XmlTypes::ResTablePackageType => write!(f, "{:X}", 0x0200),
+            XmlTypes::ResTableTypeType => write!(f, "{:X}", 0x0201),
+            XmlTypes::ResTableTypeSpecType => write!(f, "{:X}", 0x0202),
+            XmlTypes::ResTableLibraryType => write!(f, "{:X}", 0x0203),
+        };
+        Ok(())
+    }
 }

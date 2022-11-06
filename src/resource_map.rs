@@ -31,7 +31,7 @@ impl ResourceMap {
         axml_buff.set_position(offset - 2);
 
         /* Parse chunk header */
-        let header = ChunkHeader::from_buff(axml_buff, XmlTypes::RES_XML_RESOURCE_MAP_TYPE)
+        let header = ChunkHeader::from_buff(axml_buff, XmlTypes::ResXmlResourceMapType)
                      .expect("Error: cannot get chunk header from string pool");
 
         /* Get resources IDs */
