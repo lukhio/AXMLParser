@@ -11,31 +11,31 @@ use byteorder::{
 /* Type identifiers for chunks. Only includes the ones related to XML */
 #[derive(PartialEq)]
 pub enum XmlTypes {
-    ResNullType,
-    ResStringPoolType,
-    ResTableType,
-    ResXmlType,
+    ResNullType                 = 0x0000,
+    ResStringPoolType           = 0x0001,
+    ResTableType                = 0x0002,
+    ResXmlType                  = 0x0003,
 
     /* Chunk types in RES_XML_Type */
     // TODO: for some reason this chunk has the same value has ResXmlStartNamespaceType which is
     // annoying. Need to figure out a way to deal with this. In the meantime, ignore it.
-    // ResXmlFirstChunkType,
-    ResXmlStartNamespaceType,
-    ResXmlEndNamespaceType,
-    ResXmlStartElementType,
-    ResXmlEndElementType,
-    ResXmlCDataType,
-    ResXmlLastChunkType,
+    // ResXmlFirstChunkType     = 0x0100,
+    ResXmlStartNamespaceType    = 0x0100,
+    ResXmlEndNamespaceType      = 0x0101,
+    ResXmlStartElementType      = 0x0102,
+    ResXmlEndElementType        = 0x0103,
+    ResXmlCDataType             = 0x0104,
+    ResXmlLastChunkType         = 0x017f,
 
     /* This contains a uint32_t array mapping strings in the string
      * pool back to resource identifiers.  It is optional. */
-    ResXmlResourceMapType,
+    ResXmlResourceMapType       = 0x0180,
 
     /* Chunk types in RES_TABLE_Type */
-    ResTablePackageType,
-    ResTableTypeType,
-    ResTableTypeSpecType,
-    ResTableLibraryType,
+    ResTablePackageType         = 0x0200,
+    ResTableTypeType            = 0x0201,
+    ResTableTypeSpecType        = 0x0202,
+    ResTableLibraryType         = 0x0203
 }
 
 impl XmlTypes {
