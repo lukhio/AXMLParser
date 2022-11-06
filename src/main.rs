@@ -246,11 +246,6 @@ fn main() {
     }
 
     let mut axml_buff = Cursor::new(axml_vec_buff);
-    /* TODO: the expected type is RES_XML_TYPE for manifest files, but RES_TABLE_TYPE for arsc
-     * files. We can probably use the first few bytes to detect which kind of files we are dealing
-     * with beforehand */
-    let header = ChunkHeader::from_buff(&mut axml_buff, XmlTypes::ResXmlType)
-                 .expect("Error: cannot parse AXML header");
 
     /* Now parsing the rest of the file */
     let mut global_strings = Vec::new();
@@ -279,8 +274,15 @@ fn main() {
                 panic!("STOP")
                 // ###############################
             },
-            XmlTypes::ResXmlType => panic!("TODO: RES_XML_TYPE"),
+            XmlTypes::ResXmlType => {
+                // TODO: should we do something more here?
+                /* Go back 2 bytes, to account from the block type */
+                let initial_offset = axml_buff.position();
+                axml_buff.set_position(initial_offset - 2);
 
+                let _ = ChunkHeader::from_buff(&mut axml_buff, XmlTypes::ResXmlType)
+                        .expect("Error: cannot parse AXML header");
+            },
             XmlTypes::ResXmlStartNamespaceType => {
                 parse_start_namespace(&mut axml_buff, &global_strings, &mut namespace_prefixes);
             },
