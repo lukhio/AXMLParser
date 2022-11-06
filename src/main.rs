@@ -146,7 +146,6 @@ fn parse_start_element(axml_buff: &mut Cursor<Vec<u8>>,
                 DataValueType::TypeIntColorRgb8 => println!("TODO: DataValueType::TypeIntColorRgb8"),
                 DataValueType::TypeIntColorArgb4 => println!("TODO: DataValueType::TypeIntColorArgb4"),
                 DataValueType::TypeIntColorRgb4 => println!("TODO: DataValueType::TypeIntColorRgb4"),
-                _ => println!("DataValueType::TypeNull"),
             }
         }
         decoded_attrs.push((decoded_attr_key, decoded_attr_val));
