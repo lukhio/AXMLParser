@@ -36,35 +36,6 @@ use data_value_type::DataValueType;
 use res_value::ResValue;
 
 
-fn get_next_block_type(axml_buff: &mut Cursor<Vec<u8>>) -> Result<u16, Error> {
-    let raw_block_type = axml_buff.read_u16::<LittleEndian>();
-    let raw_block_type = match raw_block_type {
-        Ok(block) => block,
-        Err(e) => return Err(e),
-    };
-
-    let block_type = match raw_block_type {
-        0x0000 => XmlTypes::RES_NULL_TYPE,
-        0x0001 => XmlTypes::RES_STRING_POOL_TYPE,
-        0x0002 => XmlTypes::RES_TABLE_TYPE,
-        0x0003 => XmlTypes::RES_XML_TYPE,
-        0x0100 => XmlTypes::RES_XML_START_NAMESPACE_TYPE,
-        0x0101 => XmlTypes::RES_XML_END_NAMESPACE_TYPE,
-        0x0102 => XmlTypes::RES_XML_START_ELEMENT_TYPE,
-        0x0103 => XmlTypes::RES_XML_END_ELEMENT_TYPE,
-        0x0104 => XmlTypes::RES_XML_CDATA_TYPE,
-        0x017f => XmlTypes::RES_XML_LAST_CHUNK_TYPE,
-        0x0180 => XmlTypes::RES_XML_RESOURCE_MAP_TYPE,
-        0x0200 => XmlTypes::RES_TABLE_PACKAGE_TYPE,
-        0x0201 => XmlTypes::RES_TABLE_TYPE_TYPE,
-        0x0202 => XmlTypes::RES_TABLE_TYPE_SPEC_TYPE,
-        0x0203 => XmlTypes::RES_TABLE_LIBRARY_TYPE,
-        _ => XmlTypes::RES_NULL_TYPE
-    };
-
-    Ok(block_type)
-}
-
 fn parse_start_namespace(axml_buff: &mut Cursor<Vec<u8>>,
                          strings: &[String],
                          namespaces: &mut HashMap::<String, String>) {
@@ -290,7 +261,7 @@ fn main() {
     let mut writer = Writer::new(Cursor::new(Vec::new()));
 
     loop {
-        let block_type = get_next_block_type(&mut axml_buff);
+        let block_type = XmlTypes::parse_block_type(&mut axml_buff);
         let block_type = match block_type {
             Ok(block) => block,
             Err(e) => break,

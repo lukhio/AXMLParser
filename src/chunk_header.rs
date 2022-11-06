@@ -36,8 +36,10 @@ impl ChunkHeader {
         let minimum_size = 8;
 
         /* Get chunk type */
-        let chunk_type = axml_buff.read_u16::<LittleEndian>().unwrap();
+        let chunk_type = XmlTypes::parse_block_type(axml_buff)
+                        .expect("Error: cannot parse block type");
 
+        println!("[DEBUG] chunk type: {:#02X}", chunk_type);
         /* Check if this is indeed of the expected type */
         if chunk_type != expected_type {
             panic!("Error: unexpected XML chunk type");
@@ -73,6 +75,6 @@ impl ChunkHeader {
         println!("Header chunk_type: {:02X}", self.chunk_type);
         println!("Header header_size: {:02X}", self.header_size);
         println!("Chunk size: {:04X}", self.size);
-        println!("--------------------");
+        println!("----- End chunk header -----");
     }
 }
