@@ -307,8 +307,6 @@ fn main() {
             XmlTypes::ResTableTypeType => panic!("TODO: RES_TABLE_TYPE_TYPE"),
             XmlTypes::ResTableTypeSpecType => panic!("TODO: RES_TABLE_TYPE_SPEC_TYPE"),
             XmlTypes::ResTableLibraryType => panic!("TODO: RES_TABLE_LIBRARY_TYPE"),
-
-            _ => println!("{:02X}, other", block_type),
         }
     }
 
