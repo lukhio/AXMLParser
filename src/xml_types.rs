@@ -9,7 +9,7 @@ use byteorder::{
 };
 
 /* Type identifiers for chunks. Only includes the ones related to XML */
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum XmlTypes {
     ResNullType                 = 0x0000,
     ResStringPoolType           = 0x0001,

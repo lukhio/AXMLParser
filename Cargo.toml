@@ -8,5 +8,6 @@ edition = "2018"
 
 [dependencies]
 byteorder = "1.4.3"
+clap = { version = "4.0.22", features = ["derive"] }
 quick-xml = "0.22.0"
 zip = "0.5"

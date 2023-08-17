@@ -21,12 +21,14 @@ use quick_xml::events::{Event, BytesEnd, BytesStart};
 use quick_xml::events::attributes::Attribute;
 use std::borrow::Cow;
 
+mod cli;
 mod xml_types;
 mod chunk_header;
 mod string_pool;
 mod resource_map;
 mod data_value_type;
 mod res_value;
+mod res_table;
 
 use xml_types::XmlTypes;
 use chunk_header::ChunkHeader;
@@ -34,6 +36,10 @@ use string_pool::StringPool;
 use resource_map::ResourceMap;
 use data_value_type::DataValueType;
 use res_value::ResValue;
+use res_table::{
+    ResTable,
+    ResTablePackage,
+};
 
 
 fn parse_start_namespace(axml_buff: &mut Cursor<Vec<u8>>,
@@ -229,7 +235,7 @@ fn main() {
      * If we are dealing with an APK, we must first extract the binary XML from it */
     let mut raw_file;
     let mut axml_vec_buff = Vec::new();
-    if fpath.ends_with(".xml") {
+    if fpath == "resources.arsc" || fpath.ends_with(".xml") {
         raw_file = fs::File::open(fpath).expect("Error: cannot open AXML file");
         raw_file.read_to_end(&mut axml_vec_buff).expect("Error: cannot read AXML file");
     } else {
@@ -265,13 +271,21 @@ fn main() {
         match block_type {
             XmlTypes::ResNullType => continue,
             XmlTypes::ResStringPoolType => {
-                StringPool::from_buff(&mut axml_buff, &mut global_strings)
-                           .expect("Error: cannot parse string pool header");
+                let foo = StringPool::from_buff(&mut axml_buff, &mut global_strings)
+                                      .expect("Error: cannot parse string pool header");
+                println!("===================");
+                println!("foo: {:?}", foo);
+                println!("===================");
+                print!("fooprint() ");
+                foo.print();
+                println!("===================");
+                // panic!(".");
             },
             XmlTypes::ResTableType => {
+                println!("HEREHERE");
                 ResTable::parse(&mut axml_buff); // .expect("Error: cannot parse resource table");
                 // ###############################
-                panic!("STOP")
+                // panic!("STOP")
                 // ###############################
             },
             XmlTypes::ResXmlType => {
@@ -305,7 +319,12 @@ fn main() {
                                                 .expect("Error: cannot parse resource map");
             },
 
-            XmlTypes::ResTablePackageType => panic!("TODO: RES_TABLE_PACKAGE_TYPE"),
+            XmlTypes::ResTablePackageType => {
+                println!("=======================================");
+                let chunk = ResTablePackage::parse(&mut axml_buff);
+                println!("chunk: {:#?}", chunk);
+                panic!("TODO: RES_TABLE_PACKAGE_TYPE");
+            },
             XmlTypes::ResTableTypeType => panic!("TODO: RES_TABLE_TYPE_TYPE"),
             XmlTypes::ResTableTypeSpecType => panic!("TODO: RES_TABLE_TYPE_SPEC_TYPE"),
             XmlTypes::ResTableLibraryType => panic!("TODO: RES_TABLE_LIBRARY_TYPE"),

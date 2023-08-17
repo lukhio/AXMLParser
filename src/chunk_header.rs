@@ -11,6 +11,7 @@ use byteorder::{
 use crate::xml_types::XmlTypes;
 
 /* Header that appears at the beginning of every chunk */
+#[derive(Debug)]
 pub struct ChunkHeader {
     /* Type identifier for this chunk.
      * The meaning of this value depends on the containing chunk. */

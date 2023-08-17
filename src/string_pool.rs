@@ -13,7 +13,8 @@ use byteorder::{
     ReadBytesExt
 };
 
-/* Header of a chunk representing a pool of strings
+/**
+ * Header of a chunk representing a pool of strings
  *
  * Definition for a pool of strings.  The data of this chunk is an
  * array of uint32_t providing indices into the pool, relative to
@@ -29,6 +30,7 @@ use byteorder::{
  * into a style table starting at stylesStart.  Each entry in the
  * style table is an array of ResStringPool_span structures.
  */
+#[derive(Debug)]
 pub struct StringPool {
     /* Chunk header */
     header: ChunkHeader,
@@ -68,14 +70,16 @@ impl StringPool {
     pub fn from_buff(axml_buff: &mut Cursor<Vec<u8>>,
                  global_strings: &mut Vec<String>) -> Result<Self, Error> {
 
+        println!("START STRING POOL");
         /* Go back 2 bytes, to account from the block type */
-        let initial_offset = axml_buff.position();
-        axml_buff.set_position(initial_offset - 2);
+        let initial_offset = axml_buff.position() - 2;
+        axml_buff.set_position(initial_offset);
+        let initial_offset = initial_offset as u32;
 
         /* Parse chunk header */
         let header = ChunkHeader::from_buff(axml_buff, XmlTypes::ResStringPoolType)
                      .expect("Error: cannot get chunk header from string pool");
-        // header.print();
+        header.print();
 
         /* Get remaining members */
         let string_count = axml_buff.read_u32::<LittleEndian>().unwrap();
@@ -84,6 +88,12 @@ impl StringPool {
         let is_utf8 = (flags & (1<<8)) != 0;
         let strings_start = axml_buff.read_u32::<LittleEndian>().unwrap();
         let styles_start = axml_buff.read_u32::<LittleEndian>().unwrap();
+        println!("string_count: {:02X}", string_count);
+        println!("style_count: {:02X}", style_count);
+        println!("flags: {:02X}", flags);
+        println!("is_utf8: {:}", is_utf8);
+        println!("strings_start: {:02X}", strings_start);
+        println!("styles_start: {:02X}", styles_start);
 
         /* Get strings offsets */
         let mut strings_offsets = Vec::new();
@@ -101,19 +111,37 @@ impl StringPool {
 
         /* Strings */
         for offset in strings_offsets.iter() {
-            let current_start = (strings_start + offset + 8) as u64;
+            // let current_start = (strings_start + offset + 8) as u64;
+            let current_start = (initial_offset + strings_start + offset) as u64;
             axml_buff.set_position(current_start);
 
             let str_size;
             let decoded_string;
 
             if is_utf8 {
+                /* NOTE for resources.arsc files
+                 *
+                 * Each String entry contains Length header (2 bytes to 4 bytes) + Actual String + [0x00]
+                 * Length header sometime contain duplicate values e.g. 20 20
+                 * Actual string sometime contains 00, which need to be ignored
+                 * Ending zero might be  2 byte or 4 byte
+                 *
+                 * TODO: Consider both Length bytes and String length > 32767 characters
+                 *
+                 * Actually, there are two length if the file is in UTF-8: the encoded and decoded lengths
+                 */
+
+                let _encoded_size = axml_buff.read_u8().unwrap() as u32;
                 str_size = axml_buff.read_u8().unwrap() as u32;
+                println!("str_size: {:}", str_size);
                 let mut str_buff = Vec::with_capacity(str_size as usize);
                 let mut chunk = axml_buff.take(str_size.into());
 
                 chunk.read_to_end(&mut str_buff).unwrap();
-                decoded_string = String::from_utf8(str_buff).unwrap();
+                // decoded_string = String::from_utf8(str_buff).unwrap();
+                decoded_string = String::from_utf8(str_buff)
+                                 .expect("Error: cannot decode string, using raw");
+                 println!("decoded_string: {:}", decoded_string);
             } else {
                 str_size = axml_buff.read_u16::<LittleEndian>().unwrap() as u32;
                 let iter = (0..str_size as usize)
