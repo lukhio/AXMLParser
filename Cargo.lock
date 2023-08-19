@@ -3,16 +3,6 @@
 version = 3
 
 [[package]]
-name = "AXMLParser"
-version = "0.1.0"
-dependencies = [
- "byteorder",
- "clap",
- "quick-xml",
- "zip",
-]
-
-[[package]]
 name = "adler"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -65,6 +55,16 @@ checksum = "c677ab05e09154296dd37acecd46420c17b9713e8366facafa8fc0885167cf4c"
 dependencies = [
  "anstyle",
  "windows-sys",
+]
+
+[[package]]
+name = "axml_parser"
+version = "0.1.0"
+dependencies = [
+ "byteorder",
+ "clap",
+ "quick-xml",
+ "zip",
 ]
 
 [[package]]

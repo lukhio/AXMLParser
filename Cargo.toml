@@ -1,5 +1,5 @@
 [package]
-name = "AXMLParser"
+name = "axml_parser"
 version = "0.1.0"
 authors = ["Julien Gamba <julien@jgamba.eu>"]
 edition = "2018"

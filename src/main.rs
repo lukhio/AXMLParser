@@ -21,22 +21,13 @@ use quick_xml::events::{Event, BytesEnd, BytesStart};
 use quick_xml::events::attributes::Attribute;
 use std::borrow::Cow;
 
-mod cli;
-mod xml_types;
-mod chunk_header;
-mod string_pool;
-mod resource_map;
-mod data_value_type;
-mod res_value;
-mod res_table;
-
-use xml_types::XmlTypes;
-use chunk_header::ChunkHeader;
-use string_pool::StringPool;
-use resource_map::ResourceMap;
-use data_value_type::DataValueType;
-use res_value::ResValue;
-use res_table::{
+use axml_parser::xml_types::XmlTypes;
+use axml_parser::chunk_header::ChunkHeader;
+use axml_parser::string_pool::StringPool;
+use axml_parser::resource_map::ResourceMap;
+use axml_parser::data_value_type::DataValueType;
+use axml_parser::res_value::ResValue;
+use axml_parser::res_table::{
     ResTable,
     ResTablePackage,
 };
