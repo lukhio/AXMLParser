@@ -19,6 +19,7 @@ use byteorder::{
 use quick_xml::Writer;
 use quick_xml::events::{Event, BytesEnd, BytesStart};
 use quick_xml::events::attributes::Attribute;
+use quick_xml::name::QName;
 use std::borrow::Cow;
 
 use axml_parser::xml_types::XmlTypes;
@@ -176,7 +177,7 @@ fn handle_event(writer: &mut Writer<Cursor<Vec<u8>>>,
                 block_type: XmlTypes) {
     match block_type {
         XmlTypes::ResXmlStartElementType => {
-            let mut elem = BytesStart::owned(element_name.as_bytes(), element_name.len());
+            let mut elem = BytesStart::new(&element_name);
 
             if element_name == "manifest" {
                 for (k, v) in namespace_prefixes.iter() {
@@ -185,7 +186,7 @@ fn handle_event(writer: &mut Writer<Cursor<Vec<u8>>>,
                         key.push_str("xmlns:");
                         key.push_str(v);
                         let attr = Attribute {
-                            key: key.as_bytes(),
+                            key: QName(key.as_bytes()),
                             value: Cow::Borrowed(k.as_bytes())
                         };
                         elem.push_attribute(attr);
@@ -196,7 +197,7 @@ fn handle_event(writer: &mut Writer<Cursor<Vec<u8>>>,
 
             for (attr_key, attr_val) in element_attrs {
                 let attr = Attribute {
-                    key: attr_key.as_bytes(),
+                    key: QName(attr_key.as_bytes()),
                     value: Cow::Borrowed(attr_val.as_bytes())
                 };
                 elem.push_attribute(attr);
@@ -206,7 +207,7 @@ fn handle_event(writer: &mut Writer<Cursor<Vec<u8>>>,
 
         },
         XmlTypes::ResXmlEndElementType => {
-            assert!(writer.write_event(Event::End(BytesEnd::borrowed(element_name.as_bytes()))).is_ok());
+            assert!(writer.write_event(Event::End(BytesEnd::new(element_name))).is_ok());
         },
         _ => println!("{:02X}, other", block_type),
     }
