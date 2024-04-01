@@ -61,7 +61,7 @@ fn main() {
     let mut namespace_prefixes = HashMap::<String, String>::new();
 
     /* Output stuff */
-    let mut writer = Writer::new(Cursor::new(Vec::new()));
+    let mut writer = Writer::new_with_indent(Cursor::new(Vec::new()), b' ', 2);
 
     loop {
         let block_type = XmlTypes::parse_block_type(&mut axml_buff);
