@@ -67,8 +67,48 @@ pub struct StringPool {
 
 impl StringPool {
 
+    /** FROM GOOGLE
+     * Strings in UTF-8 format have length indicated by a length encoded in the
+     * stored data. It is either 1 or 2 characters of length data. This allows a
+     * maximum length of 0x7FFF (32767 bytes), but you should consider storing
+     * text in another way if you're using that much data in a single string.
+     *
+     * If the high bit is set, then there are two characters or 2 bytes of length
+     * data encoded. In that case, drop the high bit of the first character and
+     * add it together with the next character.
+     */
+    fn decode_length_utf8(axml_buff: &mut Cursor<Vec<u8>>) -> u32 {
+        let mut size = axml_buff.read_u8().unwrap() as u32;
+        if (size & 0x80) != 0 {
+            let size_b2 = axml_buff.read_u8().unwrap() as u32;
+            size = ((size & 0x7F) << 8) | size_b2;
+        }
+
+        size
+    }
+
+    /** FROM GOOGLE
+     * Strings in UTF-16 format have length indicated by a length encoded in the
+     * stored data. It is either 1 or 2 characters of length data. This allows a
+     * maximum length of 0x7FFFFFF (2147483647 bytes), but if you're storing that
+     * much data in a string, you're abusing them.
+     *
+     * If the high bit is set, then there are two characters or 4 bytes of length
+     * data encoded. In that case, drop the high bit of the first character and
+     * add it together with the next character.
+     */
+    fn decode_length_utf16(axml_buff: &mut Cursor<Vec<u8>>) -> u32 {
+        let mut size = axml_buff.read_u16::<LittleEndian>().unwrap() as u32;
+        if (size & 0x8000) != 0 {
+            let size_b2 = axml_buff.read_u16::<LittleEndian>().unwrap() as u32;
+            size = ((size & 0x7FFF) << 16) | size_b2;
+        }
+
+        size
+    }
+
     pub fn from_buff(axml_buff: &mut Cursor<Vec<u8>>,
-                 global_strings: &mut Vec<String>) -> Result<Self, Error> {
+                     global_strings: &mut Vec<String>) -> Result<Self, Error> {
 
         println!("START STRING POOL");
         /* Go back 2 bytes, to account from the block type */
@@ -94,6 +134,7 @@ impl StringPool {
         println!("is_utf8: {:}", is_utf8);
         println!("strings_start: {:02X}", strings_start);
         println!("styles_start: {:02X}", styles_start);
+        println!("--------------------");
 
         /* Get strings offsets */
         let mut strings_offsets = Vec::new();
@@ -115,35 +156,29 @@ impl StringPool {
             let current_start = (initial_offset + strings_start + offset) as u64;
             axml_buff.set_position(current_start);
 
-            let str_size;
+            let str_size = 0;
             let decoded_string;
 
+            // TODO: handle escape sequences
             if is_utf8 {
-                /* NOTE for resources.arsc files
-                 *
-                 * Each String entry contains Length header (2 bytes to 4 bytes) + Actual String + [0x00]
-                 * Length header sometime contain duplicate values e.g. 20 20
-                 * Actual string sometime contains 00, which need to be ignored
-                 * Ending zero might be  2 byte or 4 byte
-                 *
-                 * TODO: Consider both Length bytes and String length > 32767 characters
-                 *
-                 * Actually, there are two length if the file is in UTF-8: the encoded and decoded lengths
-                 */
-
-                let _encoded_size = axml_buff.read_u8().unwrap() as u32;
-                str_size = axml_buff.read_u8().unwrap() as u32;
-                println!("str_size: {:}", str_size);
-                let mut str_buff = Vec::with_capacity(str_size as usize);
-                let mut chunk = axml_buff.take(str_size.into());
+                let u16len = Self::decode_length_utf8(axml_buff);
+                let u8len = Self::decode_length_utf8(axml_buff);
+                let mut str_buff = Vec::with_capacity((u16len + 1) as usize);
+                let mut chunk = axml_buff.take((u16len + 1).into());
 
                 chunk.read_to_end(&mut str_buff).unwrap();
                 // decoded_string = String::from_utf8(str_buff).unwrap();
+                let foo = String::from_utf8(str_buff.clone());
+                println!("{foo:#02X?}");
                 decoded_string = String::from_utf8(str_buff)
-                                 .expect("Error: cannot decode string, using raw");
-                 println!("decoded_string: {:}", decoded_string);
+                    .expect("Error: cannot decode string, using raw");
+
+                println!("decoded_string: {:}", decoded_string);
+                println!("----------");
             } else {
-                str_size = axml_buff.read_u16::<LittleEndian>().unwrap() as u32;
+                // TODO: not up to date with the new decode len methods
+                // str_size = axml_buff.read_u16::<LittleEndian>().unwrap() as u32;
+                let encoded_size = Self::decode_length_utf16(axml_buff);
                 let iter = (0..str_size as usize)
                         .map(|_| axml_buff.read_u16::<LittleEndian>().unwrap());
                 decoded_string = std::char::decode_utf16(iter).collect::<Result<String, _>>().unwrap();
