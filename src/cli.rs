@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use clap::Parser;
 
 /// Accepted file types
@@ -16,6 +17,10 @@ pub struct Args {
     /// binary-XML file, or a resource.arsc file.
     #[clap(flatten)]
     target: Target,
+
+    /// Path to the output file to write the decoded content
+    #[arg(short, long)]
+    pub output: Option<PathBuf>,
 }
 
 /// Argument group to represent any file that can be parsed by AXMLParser

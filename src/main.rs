@@ -137,11 +137,11 @@ fn main() {
     let result = writer.into_inner().into_inner();
     let str_result = String::from_utf8(result).unwrap();
 
-    if args.len() == 3 {
-        let mut file = fs::File::create(&args[2]).unwrap();
+    if args.output.is_some() {
+        let mut file = fs::File::create(&args.output.unwrap()).unwrap();
         file.write_all(str_result.as_bytes()).unwrap();
     } else {
-        println!("{}", str_result);
+        println!("{str_result}");
     }
 }
 
