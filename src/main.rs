@@ -24,35 +24,34 @@ use axml_parser::res_table::{
 use axml_parser::string_pool::StringPool;
 use axml_parser::xml_types::XmlTypes;
 use axml_parser::parser;
+use axml_parser::cli;
 
 fn main() {
-    /* Check CLI arguments */
-    let args: Vec<String> = env::args().collect();
-    if args.len() < 2 || args.len() > 3 {
-        println!("Usage: ./{:} [AXML|APK]", args[0]);
-        exit(22);
-    }
+    // Check CLI arguments
+    let args = cli::parse_args();
+    println!("{args:?}");
 
-    let fpath = &args[1];
-
-    /* The argument can be either an binary XML file, or an APK.
-     * If we are dealing with an APK, we must first extract the binary XML from it */
-    let mut raw_file;
+    // Check the file type
+    let arg_type = cli::get_arg_type(&args);
+    let arg_path = cli::get_arg_path(&args);
     let mut axml_vec_buff = Vec::new();
-    if fpath == "resources.arsc" || fpath.ends_with(".xml") {
-        raw_file = fs::File::open(fpath).expect("Error: cannot open AXML file");
-        raw_file.read_to_end(&mut axml_vec_buff).expect("Error: cannot read AXML file");
-    } else {
-        let zipfile = std::fs::File::open(fpath).unwrap();
+
+    if arg_type == cli::ArgType::Apk {
+        // If we are dealing with an APK, we must first extract the binary XML from it
+        // In this case we assume the user wants to decode the app manifest so we extract that
+
+        let zipfile = std::fs::File::open(arg_path).unwrap();
         let mut archive = zip::ZipArchive::new(zipfile).unwrap();
-        let mut file = match archive.by_name("AndroidManifest.xml") {
+        let mut raw_file = match archive.by_name("AndroidManifest.xml") {
             Ok(file) => file,
             Err(..) => {
-                panic!("Error: cannot find AndroidManifest.xml in APK");
+                panic!("Error: no AndroidManifest.xml in APK");
             }
         };
-
-        file.read_to_end(&mut axml_vec_buff).expect("Error: cannot read AXML file");
+        raw_file.read_to_end(&mut axml_vec_buff).expect("Error: cannot read manifest from app");
+    } else {
+        let mut raw_file = fs::File::open(arg_path).expect("Error: cannot open AXML file");
+        raw_file.read_to_end(&mut axml_vec_buff).expect("Error: cannot read AXML file");
     }
 
     let mut axml_buff = Cursor::new(axml_vec_buff);
