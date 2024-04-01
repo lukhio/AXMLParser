@@ -1,4 +1,5 @@
 pub mod cli;
+pub mod parser;
 pub mod xml_types;
 pub mod chunk_header;
 pub mod string_pool;
