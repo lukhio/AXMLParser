@@ -32,8 +32,8 @@ fn main() {
     println!("{args:?}");
 
     // Check the file type
-    let arg_type = cli::get_arg_type(&args);
-    let arg_path = cli::get_arg_path(&args);
+    let arg_type = args.get_arg_type();
+    let arg_path = args.get_arg_path();
     let mut axml_vec_buff = Vec::new();
 
     if arg_type == cli::ArgType::Apk {

@@ -12,10 +12,10 @@ pub enum ArgType {
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Args {
-    #[clap(flatten)]
     /// Path to the file to parse. The file can be either an APK, an Android
     /// binary-XML file, or a resource.arsc file.
-    target: Target
+    #[clap(flatten)]
+    target: Target,
 }
 
 /// Argument group to represent any file that can be parsed by AXMLParser
@@ -39,34 +39,36 @@ pub fn parse_args() -> Args {
     Args::parse()
 }
 
-pub fn get_arg_type(args: &Args) -> ArgType {
-    if args.target.apk.is_some() {
-        return ArgType::Apk;
+impl Args {
+    pub fn get_arg_type(&self) -> ArgType {
+        if self.target.apk.is_some() {
+            return ArgType::Apk;
+        }
+
+        if self.target.xml.is_some() {
+            return ArgType::Axml;
+        }
+
+        if self.target.res.is_some() {
+            return ArgType::Arsc;
+        }
+
+        panic!("Will never happen");
     }
 
-    if args.target.xml.is_some() {
-        return ArgType::Axml;
+    pub fn get_arg_path(&self) -> String {
+        if self.target.apk.is_some() {
+            return self.target.apk.as_ref().unwrap().clone();
+        }
+
+        if self.target.xml.is_some() {
+            return self.target.xml.as_ref().unwrap().clone();
+        }
+
+        if self.target.res.is_some() {
+            return self.target.res.as_ref().unwrap().clone();
+        }
+
+        panic!("Will never happen");
     }
-
-    if args.target.res.is_some() {
-        return ArgType::Arsc;
-    }
-
-    panic!("Will never happen");
-}
-
-pub fn get_arg_path(args: &Args) -> String {
-    if args.target.apk.is_some() {
-        return args.target.apk.as_ref().unwrap().clone();
-    }
-
-    else if args.target.xml.is_some() {
-        return args.target.xml.as_ref().unwrap().clone();
-    }
-
-    else if args.target.res.is_some() {
-        return args.target.res.as_ref().unwrap().clone();
-    }
-
-    panic!("Will never happen");
 }
