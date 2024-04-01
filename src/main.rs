@@ -1,15 +1,12 @@
 #![allow(non_snake_case, unused_variables, dead_code)]
 
 use std::{
-    env,
     fs,
-    process::exit,
     collections::HashMap,
 };
 use std::io::{
     Read,
     Write,
-    Error,
     Cursor,
 };
 

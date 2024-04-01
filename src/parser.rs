@@ -17,14 +17,8 @@ use quick_xml::name::QName;
 
 use crate::xml_types::XmlTypes;
 use crate::chunk_header::ChunkHeader;
-use crate::string_pool::StringPool;
-use crate::resource_map::ResourceMap;
 use crate::data_value_type::DataValueType;
 use crate::res_value::ResValue;
-use crate::res_table::{
-    ResTable,
-    ResTablePackage,
-};
 
 
 pub fn parse_start_namespace(axml_buff: &mut Cursor<Vec<u8>>,
