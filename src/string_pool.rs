@@ -159,22 +159,14 @@ impl StringPool {
             let str_size = 0;
             let decoded_string;
 
-            // TODO: handle escape sequences
             if is_utf8 {
                 let u16len = Self::decode_length_utf8(axml_buff);
                 let u8len = Self::decode_length_utf8(axml_buff);
-                let mut str_buff = Vec::with_capacity((u16len + 1) as usize);
-                let mut chunk = axml_buff.take((u16len + 1).into());
+                let mut str_buff = Vec::with_capacity((u8len) as usize);
+                let mut chunk = axml_buff.take((u8len).into());
 
                 chunk.read_to_end(&mut str_buff).unwrap();
-                // decoded_string = String::from_utf8(str_buff).unwrap();
-                let foo = String::from_utf8(str_buff.clone());
-                println!("{foo:#02X?}");
-                decoded_string = String::from_utf8(str_buff)
-                    .expect("Error: cannot decode string, using raw");
-
-                println!("decoded_string: {:}", decoded_string);
-                println!("----------");
+                decoded_string = String::from_utf8(str_buff).unwrap();
             } else {
                 // TODO: not up to date with the new decode len methods
                 // str_size = axml_buff.read_u16::<LittleEndian>().unwrap() as u32;
