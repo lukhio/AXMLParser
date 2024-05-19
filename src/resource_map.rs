@@ -47,17 +47,6 @@ impl ResourceMap {
             resources_id
         })
     }
-
-    pub fn print(&self) {
-        self.header.print();
-        println!("----- Resource map header -----");
-        println!("Resource ID map:");
-        for item in self.resources_id.iter() {
-            let string = get_resource_string(*item).unwrap();
-            println!("{:?}", string);
-        }
-        println!("--------------------");
-    }
 }
 
 fn get_resource_string(mut id: u32) -> Result<String, Error> {
