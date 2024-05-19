@@ -20,7 +20,7 @@ use crate::cli::ArgType;
 pub fn create_cursor(arg_type: ArgType,
                      file_path: &str) -> Cursor<Vec<u8>> {
 
-    let mut axml_vec_buff = Vec::new();
+    let mut axml_cursor = Vec::new();
 
     if arg_type == cli::ArgType::Apk {
         // If we are dealing with an APK, we must first extract the binary XML from it
@@ -34,11 +34,14 @@ pub fn create_cursor(arg_type: ArgType,
                 panic!("Error: no AndroidManifest.xml in APK");
             }
         };
-        raw_file.read_to_end(&mut axml_vec_buff).expect("Error: cannot read manifest from app");
+        raw_file.read_to_end(&mut axml_cursor).expect("Error: cannot read manifest from app");
     } else {
         let mut raw_file = fs::File::open(file_path).expect("Error: cannot open AXML file");
-        raw_file.read_to_end(&mut axml_vec_buff).expect("Error: cannot read AXML file");
+        raw_file.read_to_end(&mut axml_cursor).expect("Error: cannot read AXML file");
     }
 
-    Cursor::new(axml_vec_buff)
+    Cursor::new(axml_cursor)
+}
+    }
+
 }
