@@ -86,90 +86,73 @@ pub fn get_manifest_contents(mut axml_cursor: Cursor<Vec<u8>>) -> ManifestConten
     // let mut writer = Vec::new();
 
     loop {
-        let block_type = XmlTypes::parse_block_type(&mut axml_cursor);
-        let block_type = match block_type {
-            Ok(block) => block,
-            Err(e) => break,
-        };
+        if let Ok(block_type) = XmlTypes::parse_block_type(&mut axml_cursor) {
+            match block_type {
+                XmlTypes::ResNullType => continue,
+                XmlTypes::ResStringPoolType => {
+                    let _ = StringPool::from_buff(&mut axml_cursor, &mut global_strings);
+                },
+                XmlTypes::ResTableType => {
+                    let _ = ResTable::parse(&mut axml_cursor);
+                },
+                XmlTypes::ResXmlType => {
+                    axml_cursor.set_position(axml_cursor.position() - 2);
+                    let _ = ChunkHeader::from_buff(&mut axml_cursor, XmlTypes::ResXmlType);
+                },
+                XmlTypes::ResXmlStartNamespaceType => {
+                    parser::parse_start_namespace(&mut axml_cursor, &global_strings, &mut namespace_prefixes);
+                },
+                XmlTypes::ResXmlEndNamespaceType => {
+                    parser::parse_end_namespace(&mut axml_cursor, &global_strings);
+                },
+                XmlTypes::ResXmlStartElementType => {
+                    let (element_type, attrs) = parser::parse_start_element(&mut axml_cursor, &global_strings, &namespace_prefixes).unwrap();
 
-        match block_type {
-            XmlTypes::ResNullType => continue,
-            XmlTypes::ResStringPoolType => {
-                let _foo = StringPool::from_buff(&mut axml_cursor, &mut global_strings)
-                                       .expect("Error: cannot parse string pool header");
-            },
-            XmlTypes::ResTableType => {
-                ResTable::parse(&mut axml_cursor); // .expect("Error: cannot parse resource table");
-            },
-            XmlTypes::ResXmlType => {
-                // TODO: should we do something more here?
-                /* Go back 2 bytes, to account from the block type */
-                let initial_offset = axml_cursor.position();
-                axml_cursor.set_position(initial_offset - 2);
+                    // Get element name from the attributes
+                    // We only care about package name, activites, services, content providers and
+                    // broadcast receivers which all have their name in the "android" namespace
+                    let mut element_name = String::new();
 
-                let _ = ChunkHeader::from_buff(&mut axml_cursor, XmlTypes::ResXmlType)
-                        .expect("Error: cannot parse AXML header");
-            },
-            XmlTypes::ResXmlStartNamespaceType => {
-                parser::parse_start_namespace(&mut axml_cursor, &global_strings, &mut namespace_prefixes);
-            },
-            XmlTypes::ResXmlEndNamespaceType => {
-                parser::parse_end_namespace(&mut axml_cursor, &global_strings);
-            },
-            XmlTypes::ResXmlStartElementType => {
-                let (element_type, attrs) = parser::parse_start_element(&mut axml_cursor, &global_strings, &namespace_prefixes).unwrap();
-
-                // Get element name from the attributes
-                // We only care about package name, activites, services, content providers and
-                // broadcast receivers which all have their name in the "android" namespace
-                let mut element_name = String::new();
-
-                for (attr_key, attr_val) in attrs.iter() {
-                    if attr_key == "android:name" {
-                        element_name = attr_val.to_string();
-                        break;
-                    }
-                }
-
-                match element_type.as_str() {
-                    "activity" => contents.activities.push(element_name),
-                    "service"  => contents.services.push(element_name),
-                    "provider" => contents.providers.push(element_name),
-                    "receiver" => contents.receivers.push(element_name),
-                    "permission" => contents.created_perms.push(element_name),
-                    "uses-permission" => contents.requested_perms.push(element_name),
-                    _ => { }
-                }
-
-                // Package name is in the "manifest" element and with the "package" key
-                if element_type == "manifest" {
                     for (attr_key, attr_val) in attrs.iter() {
-                        if attr_key == "package" {
-                            contents.pkg_name = attr_val.to_string();
+                        if attr_key == "android:name" {
+                            element_name = attr_val.to_string();
                             break;
                         }
                     }
-                }
-            },
-            XmlTypes::ResXmlEndElementType => {
-                let element_name = parser::parse_end_element(&mut axml_cursor, &global_strings).unwrap();
-            },
-            XmlTypes::ResXmlCDataType => panic!("TODO: RES_XML_CDATA_TYPE"),
-            XmlTypes::ResXmlLastChunkType => panic!("TODO: RES_XML_LAST_CHUNK_TYPE"),
 
-            XmlTypes::ResXmlResourceMapType => {
-                let resource_map = ResourceMap::from_buff(&mut axml_cursor)
-                                                .expect("Error: cannot parse resource map");
-            },
+                    match element_type.as_str() {
+                        "activity" => contents.activities.push(element_name),
+                        "service"  => contents.services.push(element_name),
+                        "provider" => contents.providers.push(element_name),
+                        "receiver" => contents.receivers.push(element_name),
+                        "permission" => contents.created_perms.push(element_name),
+                        "uses-permission" => contents.requested_perms.push(element_name),
+                        _ => { }
+                    }
 
-            XmlTypes::ResTablePackageType => {
-                let chunk = ResTablePackage::parse(&mut axml_cursor);
-                println!("chunk: {:#?}", chunk);
-                panic!("TODO: RES_TABLE_PACKAGE_TYPE");
-            },
-            XmlTypes::ResTableTypeType => panic!("TODO: RES_TABLE_TYPE_TYPE"),
-            XmlTypes::ResTableTypeSpecType => panic!("TODO: RES_TABLE_TYPE_SPEC_TYPE"),
-            XmlTypes::ResTableLibraryType => panic!("TODO: RES_TABLE_LIBRARY_TYPE"),
+                    // Package name is in the "manifest" element and with the "package" key
+                    if element_type == "manifest" {
+                        for (attr_key, attr_val) in attrs.iter() {
+                            if attr_key == "package" {
+                                contents.pkg_name = attr_val.to_string();
+                                break;
+                            }
+                        }
+                    }
+                },
+                XmlTypes::ResXmlEndElementType => {
+                    parser::parse_end_element(&mut axml_cursor, &global_strings).unwrap();
+                },
+
+                XmlTypes::ResXmlResourceMapType => {
+                    let _ = ResourceMap::from_buff(&mut axml_cursor);
+                },
+
+                _ => { },
+            }
+        }
+        else  {
+            break;
         }
     }
 
