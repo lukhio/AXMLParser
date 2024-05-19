@@ -113,22 +113,17 @@ pub fn get_manifest_contents(mut axml_cursor: Cursor<Vec<u8>>) -> ManifestConten
             },
             XmlTypes::ResXmlStartElementType => {
                 let (element_type, attrs) = parser::parse_start_element(&mut axml_cursor, &global_strings, &namespace_prefixes).unwrap();
-                eprintln!("{element_type}");
 
                 // Get element name from the attributes
-                // We only care about activites, services, content providers and
+                // We only care about package name, activites, services, content providers and
                 // broadcast receivers which all have their name in the "android" namespace
                 let mut element_name = String::new();
+
                 for (attr_key, attr_val) in attrs.iter() {
                     if attr_key == "android:name" {
                         element_name = attr_val.to_string();
                         break;
                     }
-                }
-
-                // Check that we indeed have a name
-                if element_name.is_empty() {
-                    continue;
                 }
 
                 match element_type.as_str() {
@@ -138,11 +133,19 @@ pub fn get_manifest_contents(mut axml_cursor: Cursor<Vec<u8>>) -> ManifestConten
                     "receiver" => contents.receivers.push(element_name),
                     _ => { }
                 }
-                // parser::handle_event(&mut writer, element_name, attrs, &namespace_prefixes, XmlTypes::ResXmlStartElementType);
+
+                // Package name is in the "manifest" element and with the "package" key
+                if element_type == "manifest" {
+                    for (attr_key, attr_val) in attrs.iter() {
+                        if attr_key == "package" {
+                            contents.pkg_name = attr_val.to_string();
+                            break;
+                        }
+                    }
+                }
             },
             XmlTypes::ResXmlEndElementType => {
                 let element_name = parser::parse_end_element(&mut axml_cursor, &global_strings).unwrap();
-//                 parser::handle_event(&mut writer, element_name, Vec::new(), &namespace_prefixes, XmlTypes::ResXmlEndElementType);
             },
             XmlTypes::ResXmlCDataType => panic!("TODO: RES_XML_CDATA_TYPE"),
             XmlTypes::ResXmlLastChunkType => panic!("TODO: RES_XML_LAST_CHUNK_TYPE"),
