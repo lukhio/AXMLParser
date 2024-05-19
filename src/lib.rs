@@ -15,6 +15,8 @@ use std::io::{
 };
 use crate::cli::ArgType;
 
+/// Open the file, read the contents, and create a `Cursor` of the raw data
+/// for easier handling when parsing the XML data.
 pub fn create_cursor(arg_type: ArgType,
                      file_path: &str) -> Cursor<Vec<u8>> {
 
