@@ -5,13 +5,13 @@ use std::{
     collections::HashMap,
 };
 use std::io::{
-    Read,
     Write,
     Cursor,
 };
 
 use quick_xml::Writer;
 
+use axml_parser::create_cursor;
 use axml_parser::chunk_header::ChunkHeader;
 use axml_parser::resource_map::ResourceMap;
 use axml_parser::res_table::{
@@ -31,27 +31,8 @@ fn main() {
     // Check the file type
     let arg_type = args.get_arg_type();
     let arg_path = args.get_arg_path();
-    let mut axml_vec_buff = Vec::new();
 
-    if arg_type == cli::ArgType::Apk {
-        // If we are dealing with an APK, we must first extract the binary XML from it
-        // In this case we assume the user wants to decode the app manifest so we extract that
-
-        let zipfile = std::fs::File::open(arg_path).unwrap();
-        let mut archive = zip::ZipArchive::new(zipfile).unwrap();
-        let mut raw_file = match archive.by_name("AndroidManifest.xml") {
-            Ok(file) => file,
-            Err(..) => {
-                panic!("Error: no AndroidManifest.xml in APK");
-            }
-        };
-        raw_file.read_to_end(&mut axml_vec_buff).expect("Error: cannot read manifest from app");
-    } else {
-        let mut raw_file = fs::File::open(arg_path).expect("Error: cannot open AXML file");
-        raw_file.read_to_end(&mut axml_vec_buff).expect("Error: cannot read AXML file");
-    }
-
-    let mut axml_buff = Cursor::new(axml_vec_buff);
+    let mut axml_buff = create_cursor(arg_type, &arg_path);
 
     /* Now parsing the rest of the file */
     let mut global_strings = Vec::new();
