@@ -157,11 +157,11 @@ pub fn parse_end_element(axml_buff: &mut Cursor<Vec<u8>>,
     Ok(strings.get(name as usize).unwrap().to_string())
 }
 
-pub fn handle_event(writer: &mut Writer<Cursor<Vec<u8>>>,
-                    element_name: String,
-                    element_attrs: Vec<(String, String)>,
-                    namespace_prefixes: &HashMap::<String, String>,
-                    block_type: XmlTypes) {
+pub fn handle_event<T> (writer: &mut Writer<T>,
+                        element_name: String,
+                        element_attrs: Vec<(String, String)>,
+                        namespace_prefixes: &HashMap::<String, String>,
+                        block_type: XmlTypes) where T: std::io::Write {
     match block_type {
         XmlTypes::ResXmlStartElementType => {
             // let mut elem = BytesStart::from_content(element_name.as_bytes(), element_name.len());
