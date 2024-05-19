@@ -110,7 +110,6 @@ impl StringPool {
     pub fn from_buff(axml_buff: &mut Cursor<Vec<u8>>,
                      global_strings: &mut Vec<String>) -> Result<Self, Error> {
 
-        println!("START STRING POOL");
         /* Go back 2 bytes, to account from the block type */
         let initial_offset = axml_buff.position() - 2;
         axml_buff.set_position(initial_offset);
@@ -128,13 +127,6 @@ impl StringPool {
         let is_utf8 = (flags & (1<<8)) != 0;
         let strings_start = axml_buff.read_u32::<LittleEndian>().unwrap();
         let styles_start = axml_buff.read_u32::<LittleEndian>().unwrap();
-        println!("string_count: {:02X}", string_count);
-        println!("style_count: {:02X}", style_count);
-        println!("flags: {:02X}", flags);
-        println!("is_utf8: {:}", is_utf8);
-        println!("strings_start: {:02X}", strings_start);
-        println!("styles_start: {:02X}", styles_start);
-        println!("--------------------");
 
         /* Get strings offsets */
         let mut strings_offsets = Vec::new();
@@ -152,7 +144,6 @@ impl StringPool {
 
         /* Strings */
         for offset in strings_offsets.iter() {
-            // let current_start = (strings_start + offset + 8) as u64;
             let current_start = (initial_offset + strings_start + offset) as u64;
             axml_buff.set_position(current_start);
 
@@ -168,10 +159,8 @@ impl StringPool {
                 chunk.read_to_end(&mut str_buff).unwrap();
                 decoded_string = String::from_utf8(str_buff).unwrap();
             } else {
-                // TODO: not up to date with the new decode len methods
-                // str_size = axml_buff.read_u16::<LittleEndian>().unwrap() as u32;
-                let encoded_size = Self::decode_length_utf16(axml_buff);
-                let iter = (0..str_size as usize)
+                let u16len = Self::decode_length_utf16(axml_buff);
+                let iter = (0..u16len as usize)
                         .map(|_| axml_buff.read_u16::<LittleEndian>().unwrap());
                 decoded_string = std::char::decode_utf16(iter).collect::<Result<String, _>>().unwrap();
             }
