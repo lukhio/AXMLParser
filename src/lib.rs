@@ -30,10 +30,15 @@ use crate::xml_types::XmlTypes;
 #[derive(Debug, Default)]
 pub struct ManifestContents {
     pkg_name: String,
+
     activities: Vec<String>,
     services: Vec<String>,
     providers: Vec<String>,
     receivers: Vec<String>,
+
+    // TODO: does not includes permissions requested from within components
+    created_perms: Vec<String>,
+    requested_perms: Vec<String>,
 }
 
 /// Open the file, read the contents, and create a `Cursor` of the raw data
@@ -131,6 +136,8 @@ pub fn get_manifest_contents(mut axml_cursor: Cursor<Vec<u8>>) -> ManifestConten
                     "service"  => contents.services.push(element_name),
                     "provider" => contents.providers.push(element_name),
                     "receiver" => contents.receivers.push(element_name),
+                    "permission" => contents.created_perms.push(element_name),
+                    "uses-permission" => contents.requested_perms.push(element_name),
                     _ => { }
                 }
 
