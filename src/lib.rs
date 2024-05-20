@@ -29,18 +29,18 @@ use crate::xml_types::XmlTypes;
 /// Representation of an app's manifest contents
 #[derive(Debug, Default)]
 pub struct ManifestContents {
-    pkg_name: String,
+    pub pkg_name: String,
 
-    activities: Vec<String>,
-    services: Vec<String>,
-    providers: Vec<String>,
-    receivers: Vec<String>,
+    pub activities: Vec<String>,
+    pub services: Vec<String>,
+    pub providers: Vec<String>,
+    pub receivers: Vec<String>,
 
     // TODO: does not includes permissions requested from within components
-    created_perms: Vec<String>,
-    requested_perms: Vec<String>,
+    pub created_perms: Vec<String>,
+    pub requested_perms: Vec<String>,
 
-    main_entry_point: Option<String>,
+    pub main_entry_point: Option<String>,
 }
 
 /// Open the file, read the contents, and create a `Cursor` of the raw data
