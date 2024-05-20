@@ -39,6 +39,8 @@ pub struct ManifestContents {
     // TODO: does not includes permissions requested from within components
     created_perms: Vec<String>,
     requested_perms: Vec<String>,
+
+    main_entry_point: Option<String>,
 }
 
 /// Open the file, read the contents, and create a `Cursor` of the raw data
@@ -127,6 +129,7 @@ pub fn get_manifest_contents(mut axml_cursor: Cursor<Vec<u8>>) -> ManifestConten
                         "receiver" => contents.receivers.push(element_name),
                         "permission" => contents.created_perms.push(element_name),
                         "uses-permission" => contents.requested_perms.push(element_name),
+                        "action" if element_name == "android.intent.action.MAIN" => contents.main_entry_point = contents.activities.last().cloned(),
                         _ => { }
                     }
 
