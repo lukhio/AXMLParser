@@ -45,10 +45,16 @@ pub struct ManifestContents {
 
 /// Open the file, read the contents, and create a `Cursor` of the raw data
 /// for easier handling when parsing the XML data.
-pub fn create_cursor(arg_type: ArgType,
-                     file_path: &str) -> Cursor<Vec<u8>> {
+fn create_cursor(file_path: &str) -> Cursor<Vec<u8>> {
 
     let mut axml_cursor = Vec::new();
+
+    let arg_type = match file_path.split(".").last() {
+        Some("apk") => cli::ArgType::Apk,
+        Some("xml") => cli::ArgType::Axml,
+        Some("arsc") => cli::ArgType::Arsc,
+        _ => panic!("Cannot infer file type from path"),
+    };
 
     if arg_type == cli::ArgType::Apk {
         // If we are dealing with an APK, we must first extract the binary XML from it
@@ -80,7 +86,7 @@ pub fn create_cursor(arg_type: ArgType,
 ///   * list of services names
 ///   * list of content providers names
 ///   * list of broadcast receiver names
-pub fn get_manifest_contents(mut axml_cursor: Cursor<Vec<u8>>) -> ManifestContents {
+fn get_manifest_contents(mut axml_cursor: Cursor<Vec<u8>>) -> ManifestContents {
     let mut contents = ManifestContents::default();
 
     let mut global_strings = Vec::new();
@@ -160,4 +166,10 @@ pub fn get_manifest_contents(mut axml_cursor: Cursor<Vec<u8>>) -> ManifestConten
     }
 
     contents
+}
+
+/// Convenience function to parse the manifest of an APK
+pub fn parse_app_manifest(file_path: &str) -> ManifestContents {
+    let cursor = create_cursor(file_path);
+    get_manifest_contents(cursor)
 }
