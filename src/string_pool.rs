@@ -70,7 +70,6 @@ impl StringPool {
     pub fn from_buff(axml_buff: &mut Cursor<Vec<u8>>,
                  global_strings: &mut Vec<String>) -> Result<Self, Error> {
 
-        println!("START STRING POOL");
         /* Go back 2 bytes, to account from the block type */
         let initial_offset = axml_buff.position() - 2;
         axml_buff.set_position(initial_offset);
@@ -79,7 +78,6 @@ impl StringPool {
         /* Parse chunk header */
         let header = ChunkHeader::from_buff(axml_buff, XmlTypes::ResStringPoolType)
                      .expect("Error: cannot get chunk header from string pool");
-        header.print();
 
         /* Get remaining members */
         let string_count = axml_buff.read_u32::<LittleEndian>().unwrap();
@@ -88,12 +86,6 @@ impl StringPool {
         let is_utf8 = (flags & (1<<8)) != 0;
         let strings_start = axml_buff.read_u32::<LittleEndian>().unwrap();
         let styles_start = axml_buff.read_u32::<LittleEndian>().unwrap();
-        println!("string_count: {:02X}", string_count);
-        println!("style_count: {:02X}", style_count);
-        println!("flags: {:02X}", flags);
-        println!("is_utf8: {:}", is_utf8);
-        println!("strings_start: {:02X}", strings_start);
-        println!("styles_start: {:02X}", styles_start);
 
         /* Get strings offsets */
         let mut strings_offsets = Vec::new();
@@ -133,7 +125,6 @@ impl StringPool {
 
                 let _encoded_size = axml_buff.read_u8().unwrap() as u32;
                 str_size = axml_buff.read_u8().unwrap() as u32;
-                println!("str_size: {:}", str_size);
                 let mut str_buff = Vec::with_capacity(str_size as usize);
                 let mut chunk = axml_buff.take(str_size.into());
 
@@ -141,7 +132,6 @@ impl StringPool {
                 // decoded_string = String::from_utf8(str_buff).unwrap();
                 decoded_string = String::from_utf8(str_buff)
                                  .expect("Error: cannot decode string, using raw");
-                 println!("decoded_string: {:}", decoded_string);
             } else {
                 str_size = axml_buff.read_u16::<LittleEndian>().unwrap() as u32;
                 let iter = (0..str_size as usize)
@@ -168,17 +158,5 @@ impl StringPool {
             styles_offsets,
             strings
         })
-    }
-
-    pub fn print(&self) {
-        self.header.print();
-        println!("----- String pool header -----");
-        println!("String count: {:02X}", self.string_count);
-        println!("Style count: {:02X}", self.style_count);
-        println!("Flags: {:02X}", self.flags);
-        println!("Is UTF-8: {:?}", self.is_utf8);
-        println!("Strings start: {:02X}", self.strings_start);
-        println!("Styles start: {:02X}", self.styles_start);
-        println!("--------------------");
     }
 }

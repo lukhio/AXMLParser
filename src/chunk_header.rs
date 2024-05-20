@@ -40,7 +40,6 @@ impl ChunkHeader {
         let chunk_type = XmlTypes::parse_block_type(axml_buff)
                         .expect("Error: cannot parse block type");
 
-        println!("[DEBUG] chunk type: {:#02X}", chunk_type);
         /* Check if this is indeed of the expected type */
         if chunk_type != expected_type {
             panic!("Error: unexpected XML chunk type");
